@@ -3,6 +3,11 @@ import uvicorn
 from router.router import register_app
 from utils.auto_create_models import auto_create_models
 from utils.middleware import register_middleware
+from utils.consul_ import InitializationServer
+
+"""服务端口和服务名称"""
+port = 8030
+server_name = "pmp-config"
 
 
 def init_app():
@@ -17,11 +22,14 @@ def init_app():
     """自动创建表"""
     auto_create_models()
 
+    """注册服务中心"""
+    consul_ = InitializationServer(port, server_name)
+    consul_.register()
+
     return project_app
 
 
 app = init_app()
 
-
 if __name__ == '__main__':
-    uvicorn.run(app="main:app", host="0.0.0.0", port=8030, reload=True)
+    uvicorn.run(app="main:app", host="0.0.0.0", port=port, reload=True)
