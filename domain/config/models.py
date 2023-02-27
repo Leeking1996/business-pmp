@@ -243,3 +243,49 @@ class SysMenu(Base):
             "update_user": self.update_user,
             "platform_code": self.platform_code
         }
+
+
+# 模版表
+
+class MasterPlate(Base):
+    __tablename__ = "master_plate"
+    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
+    name = Column(String(128), name="name", comment="模版名称")
+    platform_code = Column(String(64), name="platform_code", comment="平台code")
+    create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
+    create_user = Column(String(32), name="create_user", comment="创建人")
+    update_time = Column(DateTime, server_onupdate=func.now(), name="update_time", comment="更新时间")
+    update_user = Column(String(32), name="update_user", comment="update_user")
+    is_delete = Column(Boolean, name="is_delete", comment="is_delete", default=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "create_name": self.create_name,
+            "create_time": str(self.create_time)
+        }
+
+
+class MasterPlateValue(Base):
+    __tablename__ = "master_plate_value"
+    """自定义模版属性"""
+    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
+    name_en = Column(String(128), name="name_en", comment="自定义名称")
+    name_english = Column(String(128), name="name_english", comment="自定义名称英文")
+    value_type = Column(Integer, name="value_type", comment="字段类型")
+    master_plate_id = Column(Integer, name="mater_plate_id", comment="模版id")
+    platform_code = Column(String(64), name="platform_code", comment="平台code")
+    create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
+    create_user = Column(String(32), name="create_user", comment="创建人")
+    update_time = Column(DateTime, server_onupdate=func.now(), name="update_time", comment="更新时间")
+    update_user = Column(String(32), name="update_user", comment="update_user")
+    is_delete = Column(Boolean, name="is_delete", comment="is_delete", default=False)
+
+
+class ValueType(Base):
+    __tablename__ = "value_type"
+    """类型，bool， str, int, float, """
+    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
+    type_name = Column(String(32), name="type_name", comment="类型名称")
+    type_value = Column(String(32), name="type_value", comment="类型")

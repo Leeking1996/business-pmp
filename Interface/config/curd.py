@@ -366,3 +366,26 @@ async def create_role(createRole: dict, db: Session):
         print(e)
     finally:
         return flag
+
+
+async def create_master_plate(createMasterPlate: dict, db: Session):
+    flag = False
+    try:
+        """先创建模版， 然后在根据数据进行修改"""
+        master_plate_name = createMasterPlate.get("name")
+        add_ser = MasterPlate(**{"name": master_plate_name})
+        db.add(add_ser)
+        db.commit()
+        master_plate_id = add_ser.id
+        master_plate_value = createMasterPlate.get("master_plate_value")
+        if master_plate_value:
+            objects = [MasterPlateValue(name_en=i.get("name_en"),
+                                        name_english=i.get("name_english"),
+                                        value_type=i.get("value_type"),
+                                        master_plate_id=master_plate_id) for i in master_plate_value]
+            db.bulk_save_objects(objects)
+            db.commit()
+        flag = True
+    except Exception as e:
+        print(e)
+    return flag

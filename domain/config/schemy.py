@@ -190,3 +190,23 @@ class CreateRole(BaseModel):
     role_sort: int = Field(title="排序")
     role_state: bool = Field(title="角色状态")
     menu_ids: list = Field(title="菜单权限")
+
+
+class CreateMasterPlateValue(BaseModel):
+    """模版数据"""
+    name_en: str = Field(title="自定义名称")
+    name_english: str = Field(title="自定义英文名称")
+    value_type: str = Field(title="字段类型")
+
+
+class CreateMasterPlate(BaseModel):
+    """创建模版"""
+    name: str = Field(title="模版名称")
+    master_plate_value: list[CreateMasterPlateValue] = Field(title="模版名称数据")
+
+
+class UpdateMasterPlate(BaseModel):
+    """更新模版"""
+    pass
+
+
