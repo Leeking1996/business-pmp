@@ -196,7 +196,7 @@ class CreateMasterPlateValue(BaseModel):
     """模版数据"""
     name_en: str = Field(title="自定义名称")
     name_english: str = Field(title="自定义英文名称")
-    value_type: str = Field(title="字段类型")
+    value_type: int = Field(title="字段类型")
 
 
 class CreateMasterPlate(BaseModel):
@@ -207,6 +207,10 @@ class CreateMasterPlate(BaseModel):
 
 class UpdateMasterPlate(BaseModel):
     """更新模版"""
-    pass
+    master_plate_id: str = Field(title="模板id")
+    name: str = Field(title="模板名称")
+    master_plate_value: list[CreateMasterPlateValue] = Field(title="模板数据")
 
 
+class DeleteMasterPlate(BaseModel):
+    master_plate_id: str = Field(title="模板id")

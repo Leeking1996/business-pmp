@@ -250,6 +250,7 @@ class SysMenu(Base):
 class MasterPlate(Base):
     __tablename__ = "master_plate"
     id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
+    b_id = Column(String(32), name="b_id", comment="唯一id")
     name = Column(String(128), name="name", comment="模版名称")
     platform_code = Column(String(64), name="platform_code", comment="平台code")
     create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
@@ -262,8 +263,37 @@ class MasterPlate(Base):
         return {
             "id": self.id,
             "name": self.name,
-            "create_name": self.create_name,
-            "create_time": str(self.create_time)
+            "create_name": self.create_user,
+            "create_time": str(self.create_time),
+            "b_id": self.b_id,
+            "platform_code": self.platform_code
+        }
+
+
+class MasterPlateLog(Base):
+    __tablename__ = "master_plate_log"
+    """历史模板"""
+    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
+    master_plate_id = Column(String(65), name="master_plate_id", comment="模板id")
+    b_id = Column(String(32), name="b_id", comment="唯一id")
+    name = Column(String(128), name="name", comment="模版名称")
+    platform_code = Column(String(64), name="platform_code", comment="平台code")
+    create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
+    create_user = Column(String(32), name="create_user", comment="创建人")
+    update_time = Column(DateTime, server_onupdate=func.now(), name="update_time", comment="更新时间")
+    update_user = Column(String(32), name="update_user", comment="update_user")
+    is_delete = Column(Boolean, name="is_delete", comment="is_delete", default=False)
+
+    def to_dict(self):
+        return {
+            "b_id": self.b_id,
+            "master_plate_id": self.master_plate_id,
+            "name": self.name,
+            "create_time": str(self.create_time),
+            "create_user": self.create_user,
+            "update_time": self.update_time,
+            "update_user": self.update_user
+
         }
 
 
@@ -271,10 +301,11 @@ class MasterPlateValue(Base):
     __tablename__ = "master_plate_value"
     """自定义模版属性"""
     id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
+    b_id = Column(String(32), name="b_id", comment="唯一id")
     name_en = Column(String(128), name="name_en", comment="自定义名称")
     name_english = Column(String(128), name="name_english", comment="自定义名称英文")
     value_type = Column(Integer, name="value_type", comment="字段类型")
-    master_plate_id = Column(Integer, name="mater_plate_id", comment="模版id")
+    master_plate_id = Column(String(65), name="mater_plate_id", comment="模版id")
     platform_code = Column(String(64), name="platform_code", comment="平台code")
     create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
     create_user = Column(String(32), name="create_user", comment="创建人")

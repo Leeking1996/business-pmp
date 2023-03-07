@@ -116,8 +116,4 @@ def gender_snow_flake_id(datacenter_id=None, worker_id=None, sequence=None):
     worker_id = worker_id if worker_id else 2
     sequence = sequence if sequence else 0
     worker = IdWorker(datacenter_id, worker_id, sequence)
-    return worker.worker_id
-
-
-if __name__ == '__main__':
-    gender_snow_flake_id(None, 3, 3)
+    return worker.get_id()

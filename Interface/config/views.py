@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 # Author: lee
 # 2023/2/1 22:57
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from utils.gender_snow_flake import gender_snow_flake_id
 from db.content_db import get_db_content
@@ -234,7 +234,39 @@ async def create_master_plate(createMasterPlate: CreateMasterPlate, db: Session 
 
 @router.put("/update/master/plate", summary="更新模版")
 async def update_master_plate(updateMasterPlate: UpdateMasterPlate, db: Session = Depends(get_db_content)):
-    """每次更新模板， 相当于重新创建了一个模版，但是保留记录 记录原始数据,，
-    1, 解决思路， 每次保存创建流程表，把数据放到流程表中， 更新模版中的数据的模版id，为流程表id，
-    拉取历史数据时，则需要修改数据，相关联的 项目模版id一并修改成流程表中的id，设置雪花id
-    """
+    judge = await curd.update_master_plate(updateMasterPlate.dict(), db)
+    if judge:
+        return return_response.success()
+    return return_response.error()
+
+
+@router.delete("/delete/master/plate", summary="删除模板")
+async def delete_master_plate(deleteMasterPlate: DeleteMasterPlate, db: Session = Depends(get_db_content)):
+    judge_data = await curd.delete_master_plate(deleteMasterPlate.dict(), db)
+    if judge_data:
+        return return_response.success()
+    return return_response.error()
+
+
+@router.get("/search/master/plate", summary="查询数据")
+async def search_master_plate(master_plate_name=Query(None), db: Session = Depends(get_db_content)):
+    judge_data = await curd.search_master_plate(master_plate_name, db)
+    if judge_data:
+        return return_response.success(judge_data)
+    return return_response.error()
+
+
+@router.get("/search/history/master/plate", summary="查看历史数据")
+async def search_history_master_plate(master_plate_id: str, db: Session = Depends(get_db_content)):
+    judge_data = await curd.search_history_master_plate(master_plate_id, db)
+    if judge_data:
+        return return_response.success(judge_data)
+    return return_response.error()
+
+
+@router.delete("/delete/history/master/plate", summary="删除历史模板")
+async def delete_master_plate(deleteMasterPlate: DeleteMasterPlate, db: Session = Depends(get_db_content)):
+    judge_data = await curd.delete_history_master_plate(deleteMasterPlate.dict(), db)
+    if judge_data:
+        return return_response.success()
+    return return_response.error()

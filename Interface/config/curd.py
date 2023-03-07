@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from domain.config.models import *
 from utils.config import config_paging
 from utils.encryption import MyDESCrypt
+from utils.gender_snow_flake import gender_snow_flake_id
 
 
 async def create_department(createDepartment, db: Session):
@@ -370,22 +371,109 @@ async def create_role(createRole: dict, db: Session):
 
 async def create_master_plate(createMasterPlate: dict, db: Session):
     flag = False
+
     try:
         """先创建模版， 然后在根据数据进行修改"""
         master_plate_name = createMasterPlate.get("name")
-        add_ser = MasterPlate(**{"name": master_plate_name})
+        b_id = gender_snow_flake_id()
+        add_ser = MasterPlate(**{"name": master_plate_name, "b_id": b_id})
         db.add(add_ser)
-        db.commit()
-        master_plate_id = add_ser.id
         master_plate_value = createMasterPlate.get("master_plate_value")
         if master_plate_value:
             objects = [MasterPlateValue(name_en=i.get("name_en"),
                                         name_english=i.get("name_english"),
                                         value_type=i.get("value_type"),
-                                        master_plate_id=master_plate_id) for i in master_plate_value]
+                                        master_plate_id=b_id,
+                                        b_id=gender_snow_flake_id()) for i in master_plate_value]
             db.bulk_save_objects(objects)
             db.commit()
         flag = True
     except Exception as e:
         print(e)
     return flag
+
+
+async def update_master_plate(param, db: Session):
+    """创建新的模板，查询是否有项目。如果项目id为真，则需要反向更新项目模板id，
+    如果项目模板id为空，则不需要更新项目id"""
+    flag = False
+    try:
+        # 根据模板id查询项目ID，如果项目id为空，则直接修改，并且记录到日志表中， 如果有数据，反向修改 项目表中的 模板id
+        master_plate_id = param.get("master_plate_id")
+        # 根据模板反差项目是否有用着模板id
+        master_plate = db.query(MasterPlate).filter(MasterPlate.b_id == master_plate_id).first()
+        master_plate_log_id = gender_snow_flake_id()
+        is_use_master_plate_project = False
+        if is_use_master_plate_project:
+            """有项目用着，需要更新数据"""
+            pass
+        else:
+            """没有项目用着,"""
+        create_master_plate_log_dict = {"master_plate_id": master_plate.b_id,
+                                        "name": master_plate.name,
+                                        "b_id": master_plate_log_id,
+                                        "platform_code": master_plate.platform_code}
+        add_ser = MasterPlateLog(**create_master_plate_log_dict)
+        # 在这快根据模板id进行数据的反查
+
+        db.add(add_ser)
+        # 把值表中的数据修改成 日志表中的id
+        db.query(MasterPlateValue).filter(MasterPlateValue.master_plate_id == master_plate_id).update(
+            {"master_plate_id": master_plate_log_id})
+
+        # 添加数据
+        master_plate_value = param.get("master_plate_value")
+        if master_plate_value:
+            objects = [MasterPlateValue(name_en=i.get("name_en"),
+                                        name_english=i.get("name_english"),
+                                        value_type=i.get("value_type"),
+                                        master_plate_id=master_plate_id,
+                                        b_id=gender_snow_flake_id()) for i in master_plate_value]
+            db.bulk_save_objects(objects)
+        db.query(MasterPlate).filter(MasterPlate.b_id == master_plate_id).update({"name": param.get("name")})
+        db.commit()
+        flag = True
+    except Exception as e:
+        print(e)
+        db.rollback()
+
+    finally:
+        return flag
+
+
+async def delete_master_plate(param: dict, db: Session):
+    db.query(MasterPlate).filter(MasterPlate.b_id == param.get("master_plate_id")).update({"is_delete": True})
+    db.commit()
+    return True
+
+
+async def search_master_plate(master_plate_name: None, db: Session):
+    """查询模板"""
+    q_filter = db.query(MasterPlate).filter(MasterPlate.is_delete.is_(False))
+    if master_plate_name:
+        q_filter = q_filter.filter(MasterPlate.name.ilike(F"%{master_plate_name}%"))
+    all_master_data = q_filter.all()
+    all_master_list = [i.to_dict() for i in all_master_data]
+    return all_master_list
+
+
+async def search_history_master_plate(master_plate_id: str, db: Session):
+    """查看历史模板数据"""
+    history_master_plate_data = db.query(MasterPlateLog).filter(MasterPlateLog.master_plate_id == master_plate_id,
+                                                                MasterPlateLog.is_delete.is_(False)).all()
+    return [i.to_dict() for i in history_master_plate_data]
+
+
+async def delete_history_master_plate(deleteMasterHistory: dict, db: Session):
+    """删除历史数据"""
+    flag = False
+    try:
+        db.query(MasterPlateLog).filter(MasterPlateLog.b_id == deleteMasterHistory.get("master_plate_id")).update(
+            {"is_delete": True})
+        db.commit()
+        flag = True
+    except Exception as e:
+        print(e)
+        db.rollback()
+    finally:
+        return flag
