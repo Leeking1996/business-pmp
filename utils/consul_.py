@@ -19,7 +19,7 @@ def get_ip():
 
 
 class InitializationServer(object):
-    def __init__(self, port: int, server_name, key=None, value=None):
+    def __init__(self, server_name, port=None, key=None, value=None):
         """注册服务"""
         self.key = key
         self.value = value
@@ -41,7 +41,7 @@ class InitializationServer(object):
         """发现服务"""
         # # 获取服务
         services = self.cursor.agent.services()
-        address = F"{services.get(self.server_name).get('Address')}:{services.get('pmp_config').get('Port')}"
+        address = F"{services.get(self.server_name).get('Address')}:{services.get(self.server_name).get('Port')}"
         return address
 
     def get_value(self):

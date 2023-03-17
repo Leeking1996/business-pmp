@@ -375,8 +375,11 @@ async def create_master_plate(createMasterPlate: dict, db: Session):
     try:
         """先创建模版， 然后在根据数据进行修改"""
         master_plate_name = createMasterPlate.get("name")
+        template_properties = createMasterPlate.get("template_properties")
+        template_type = createMasterPlate.get("type")
         b_id = gender_snow_flake_id()
-        add_ser = MasterPlate(**{"name": master_plate_name, "b_id": b_id})
+        add_ser = MasterPlate(**{"name": master_plate_name, "b_id": b_id, "template_properties": template_properties,
+                                 "type": template_type})
         db.add(add_ser)
         master_plate_value = createMasterPlate.get("master_plate_value")
         if master_plate_value:
@@ -412,7 +415,9 @@ async def update_master_plate(param, db: Session):
         create_master_plate_log_dict = {"master_plate_id": master_plate.b_id,
                                         "name": master_plate.name,
                                         "b_id": master_plate_log_id,
-                                        "platform_code": master_plate.platform_code}
+                                        "platform_code": master_plate.platform_code,
+                                        "type": master_plate.type,
+                                        "template_properties": master_plate.template_properties}
         add_ser = MasterPlateLog(**create_master_plate_log_dict)
         # 在这快根据模板id进行数据的反查
 

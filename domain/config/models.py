@@ -252,6 +252,8 @@ class MasterPlate(Base):
     id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
     b_id = Column(String(32), name="b_id", comment="唯一id")
     name = Column(String(128), name="name", comment="模版名称")
+    template_properties = Column(String(128), comment="模板属性")
+    type = Column(Integer, comment="模板属性")
     platform_code = Column(String(64), name="platform_code", comment="平台code")
     create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
     create_user = Column(String(32), name="create_user", comment="创建人")
@@ -266,7 +268,9 @@ class MasterPlate(Base):
             "create_name": self.create_user,
             "create_time": str(self.create_time),
             "b_id": self.b_id,
-            "platform_code": self.platform_code
+            "platform_code": self.platform_code,
+            "template_properties": self.template_properties,
+            "type": self.type
         }
 
 

@@ -23,8 +23,8 @@ def init_app():
     auto_create_models()
 
     """注册服务中心"""
-    consul_ = InitializationServer(port, server_name)
-    consul_.register()
+    # consul_ = InitializationServer(server_name, port)
+    # consul_.register()
 
     return project_app
 

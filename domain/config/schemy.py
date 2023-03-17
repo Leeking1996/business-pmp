@@ -202,6 +202,8 @@ class CreateMasterPlateValue(BaseModel):
 class CreateMasterPlate(BaseModel):
     """创建模版"""
     name: str = Field(title="模版名称")
+    template_properties: str = Field(title="模板属性")
+    type: Optional[int] = Field(title="如果是软件 1:敏捷， 2: 瀑布")
     master_plate_value: list[CreateMasterPlateValue] = Field(title="模版名称数据")
 
 

@@ -251,7 +251,7 @@ async def delete_master_plate(deleteMasterPlate: DeleteMasterPlate, db: Session 
 @router.get("/search/master/plate", summary="查询数据")
 async def search_master_plate(master_plate_name=Query(None), db: Session = Depends(get_db_content)):
     judge_data = await curd.search_master_plate(master_plate_name, db)
-    if judge_data:
+    if isinstance(judge_data, list):
         return return_response.success(judge_data)
     return return_response.error()
 
