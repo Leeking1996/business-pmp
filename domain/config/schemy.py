@@ -56,21 +56,21 @@ class SearchPerson(BaseModel):
     person_code: Optional[str] = Field(title="工号")
     department_id: Optional[int] = Field(title="部门id")
     person_state: Optional[bool] = Field(title="员工状态")
-    person_id: Optional[int] = Field(title="员工工号")
+    person_id: Optional[int] = Field(title="id")
 
 
 class UpdatePerson(BaseModel):
     person_id: int = Field(title="用户id")
     department_id: Optional[int] = Field(title="部门id")
     person_name: Optional[str] = Field(title="用户名称")
-    person_code: Optional[str] = Field(title="用户工号")
+    person_num: Optional[str] = Field(title="用户工号")
     password: Optional[str] = Field(title="用户密码")
     person_state: Optional[bool] = Field(title="用户状态")
     role_id: Optional[int] = Field(title="岗位id")
 
 
 class DeletePerson(BaseModel):
-    person_id: int = Field(title="用户id")
+    person_id: list[int] = Field(title="用户id")
 
 
 class CreateSpm(BaseModel):
@@ -189,7 +189,20 @@ class CreateRole(BaseModel):
     role_code: str = Field(title="角色英文")
     role_sort: int = Field(title="排序")
     role_state: bool = Field(title="角色状态")
-    menu_ids: list = Field(title="菜单权限")
+    menu_ids: list[int] = Field(title="菜单权限")
+
+
+class UpdateRole(BaseModel):
+    role_id: int = Field(title="角色id")
+    role_name: Optional[str] = Field(title="角色名称")
+    role_code: Optional[str] = Field(title="角色英文")
+    role_sort: Optional[int] = Field(title="排序")
+    role_state: Optional[bool] = Field(title="角色状态")
+    menu_ids: list[int] = Field(title="菜单权限id")
+
+
+class DeleteRole(BaseModel):
+    role_id: int = Field(title="role_id")
 
 
 class CreateMasterPlateValue(BaseModel):
@@ -202,17 +215,83 @@ class CreateMasterPlateValue(BaseModel):
 class CreateMasterPlate(BaseModel):
     """创建模版"""
     name: str = Field(title="模版名称")
+    code: str = Field(title="用于生成项目编码")
     template_properties: str = Field(title="模板属性")
-    type: Optional[int] = Field(title="如果是软件 1:敏捷， 2: 瀑布")
+    type: Optional[int] = Field(title="1:预言， 2: 敏捷 3: 瀑布， 4：ipd模版")
     master_plate_value: list[CreateMasterPlateValue] = Field(title="模版名称数据")
 
 
 class UpdateMasterPlate(BaseModel):
     """更新模版"""
     master_plate_id: str = Field(title="模板id")
+    code: str = Field(title="用于生成code编码")
     name: str = Field(title="模板名称")
     master_plate_value: list[CreateMasterPlateValue] = Field(title="模板数据")
 
 
 class DeleteMasterPlate(BaseModel):
     master_plate_id: str = Field(title="模板id")
+
+
+class CreateBrodHeading(BaseModel):
+    brod_name: str = Field(title="大类名称")
+    brod_chart: str = Field(title="大类字符")
+
+
+class UpdateBrodHeading(BaseModel):
+    b_id: str = Field(title="b_id")
+    brod_name: str = Field(title="大类名称")
+    brod_chart: str = Field(title="大类字符")
+
+
+class SearchBrodHeading(BaseModel):
+    brod_name: Optional[str] = Field(title="大类名称")
+    brod_chart: Optional[str] = Field(title="字符名称")
+
+
+class CreateSubClass(BaseModel):
+    sub_class_name: str = Field(title="小类名称")
+    sub_class_chart: str = Field(title="小类字符")
+    brod_heading_id: str = Field(title="大类id")
+
+
+class SearchSubClass(BaseModel):
+    sub_class_name: Optional[str] = Field(title="小类名称")
+    sub_class_chart: Optional[str] = Field(title="小类字符")
+    brod_heading_id: Optional[str] = Field(title="大类id")
+
+
+class UpdateSubClass(BaseModel):
+    b_id: Optional[str] = Field(title="小类id")
+    sub_class_name: Optional[str] = Field(title="小类名称")
+    sub_class_chart: Optional[str] = Field(title="小类字符")
+    brod_heading_id: Optional[str] = Field(title="大类id")
+
+
+class CreateProjectState(BaseModel):
+    state_name: str = Field(title="状态名称")
+    index: int = Field(title="展示顺序")
+    template_id: str = Field(title="模板id")
+
+
+class SearchProjectState(BaseModel):
+    template_id: Optional[str] = Field(title="模板ID")
+    state_name: Optional[str] = Field(title="状态名称")
+
+
+class UpdateProjectState(BaseModel):
+    b_id: str = Field(title="b_id")
+    state_name: Optional[str] = Field(title="状态名称")
+    index: Optional[int] = Field(title="index")
+    template_id: Optional[str] = Field(title="模板id")
+
+
+class OptionalBase(BaseModel):
+    colum: str = Field(title="字段名称")
+    is_true: Optional[bool] = Field(False, title='是否展示')
+
+
+# 保存可选字段
+class CreateOptionalLog(BaseModel):
+    template_id: str = Field(title="模板id")
+    optionals: list[OptionalBase] = Field(title="字段是否展示")

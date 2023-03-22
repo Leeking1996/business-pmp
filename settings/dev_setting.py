@@ -11,3 +11,6 @@ mysql_db_dict = {
     "DATABASES": "pmp",
     "USERNAME": "root"
 }
+
+
+pmp_project_domain = "http://localhost:8031"

@@ -6,7 +6,7 @@ from utils.middleware import register_middleware
 from utils.consul_ import InitializationServer
 
 """服务端口和服务名称"""
-port = 8030
+port = 8032
 server_name = "pmp-config"
 
 
@@ -32,4 +32,6 @@ def init_app():
 app = init_app()
 
 if __name__ == '__main__':
+    # 初始化数据库, 把数据写入到数据库中
+
     uvicorn.run(app="main:app", host="0.0.0.0", port=port, reload=True)

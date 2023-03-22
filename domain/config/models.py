@@ -2,7 +2,7 @@
 # Author: lee
 # 2023/2/1 23:03
 
-from sqlalchemy import Column, Integer, String, Float, Boolean, Date, func, ForeignKey, DateTime, text
+from sqlalchemy import Column, Integer, String, Float, Boolean, Date, func, ForeignKey, DateTime, text, JSON
 from sqlalchemy.orm import relationship
 from db import Base
 
@@ -19,7 +19,8 @@ class SysDepartment(Base):
     leader_code = Column(String(32), name="leader_code", comment="部门负责人工号")
     phone_num = Column(String(11), name="phone_num", comment="电话号码")
     email = Column(String(32), name="email", comment="邮箱")
-    parent_id = Column(Integer, name="parent_id", comment="上级id")
+    parent_id = Column(ForeignKey("sys_department.id"))
+    departmentData = relationship("SysDepartment")
     department_state = Column(Boolean, name="department_state", comment="部门状态")
     create_user = Column(String(32), name="create_user", comment="创建人")
     create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
@@ -82,7 +83,8 @@ class SysUser(Base):
             "create_user": self.create_user,
             "is_delete": self.is_delete,
             "department_name": self.department_data.department_name,
-            "platform_code": self.platform_code
+            "platform_code": self.platform_code,
+            "person_state": self.person_state
 
         }
 
@@ -105,7 +107,7 @@ class SysPostManagement(Base):
 
     def to_dict(self):
         return {
-            "id": id,
+            "id": self.id,
             "post_management_name": self.post_management_name,
             "post_management_code": self.post_management_code,
             "index": self.index,
@@ -197,6 +199,17 @@ class SysRole(Base):
     update_user = Column(String(32), name="update_user", comment="update_user")
     is_delete = Column(Boolean, name="is_delete", comment="is_delete", default=False)
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "role_name": self.role_name,
+            "role_code": self.role_code,
+            "role_sort": self.role_sort,
+            "role_state": self.role_state,
+            "platform_code": self.platform_code
+
+        }
+
 
 class SysRoleRelationMenu(Base):
     __tablename__ = "sys_role_relation_menu"
@@ -245,7 +258,7 @@ class SysMenu(Base):
         }
 
 
-# 模版表
+# 模版表是否增加是软件类型的情况下 1，敏捷 2，瀑布
 
 class MasterPlate(Base):
     __tablename__ = "master_plate"
@@ -253,7 +266,9 @@ class MasterPlate(Base):
     b_id = Column(String(32), name="b_id", comment="唯一id")
     name = Column(String(128), name="name", comment="模版名称")
     template_properties = Column(String(128), comment="模板属性")
-    type = Column(Integer, comment="模板属性")
+    code = Column(String(12), name="code", comment="用于生成项目编码")
+    type = Column(Integer, comment="模板类型， 1 软件， 2，其他")
+    project_type = Column(Integer, name="project_type", comment="软件类型下 1，敏捷 2，瀑布， 3策划")
     platform_code = Column(String(64), name="platform_code", comment="平台code")
     create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
     create_user = Column(String(32), name="create_user", comment="创建人")
@@ -270,7 +285,9 @@ class MasterPlate(Base):
             "b_id": self.b_id,
             "platform_code": self.platform_code,
             "template_properties": self.template_properties,
-            "type": self.type
+            "type": self.type,
+            "code": self.code,
+            "project_type": self.project_type
         }
 
 
@@ -281,6 +298,9 @@ class MasterPlateLog(Base):
     master_plate_id = Column(String(65), name="master_plate_id", comment="模板id")
     b_id = Column(String(32), name="b_id", comment="唯一id")
     name = Column(String(128), name="name", comment="模版名称")
+    code = Column(String(12), name="code", comment="用于生成项目code")
+    type = Column(Integer, name="type", comment="模板类型， 1 软件， 2，其他")
+    project_type = Column(Integer, name="project_type", comment="软件类型下 1，敏捷 2，瀑布， 3策划")
     platform_code = Column(String(64), name="platform_code", comment="平台code")
     create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
     create_user = Column(String(32), name="create_user", comment="创建人")
@@ -296,7 +316,9 @@ class MasterPlateLog(Base):
             "create_time": str(self.create_time),
             "create_user": self.create_user,
             "update_time": self.update_time,
-            "update_user": self.update_user
+            "update_user": self.update_user,
+            "type": self.type,
+            "project_type": self.project_type
 
         }
 
@@ -324,3 +346,131 @@ class ValueType(Base):
     id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
     type_name = Column(String(32), name="type_name", comment="类型名称")
     type_value = Column(String(32), name="type_value", comment="类型")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "type_name": self.type_name,
+            "type_value": self.type_value
+        }
+
+
+class BrodHeading(Base):
+    __tablename__ = "brod_heading"
+    """项目大类"""
+    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
+    b_id = Column(String(128), name="b_id", comment="b_id")
+    brod_name = Column(String(128), name="brod_name", comment="项目大类")
+    brod_chart = Column(String(30), name="brod_chart", comment="字符")
+    platform_code = Column(String(64), name="platform_code", comment="平台code")
+    create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
+    create_user = Column(String(32), name="create_user", comment="创建人")
+    update_time = Column(DateTime, server_onupdate=func.now(), name="update_time", comment="更新时间")
+    update_user = Column(String(32), name="update_user", comment="update_user")
+    is_delete = Column(Boolean, name="is_delete", comment="是否删除", default=False)
+
+    def to_dict(self):
+        return {
+            "b_id": self.b_id,
+            "brod_name": self.brod_name,
+            "brod_chart": self.brod_chart
+        }
+
+
+class SubClass(Base):
+    __tablename__ = "sub_class"
+    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
+    b_id = Column(String(128), name="b_id", comment="唯一id")
+    sub_class_name = Column(String(128), name="sub_class_name", comment="项目小类")
+    sub_class_chart = Column(String(30), name="sub_class_chart", comment="项目小类字符")
+    brod_heading_id = Column(String(128), name="brod_heading_id", comment="项目大类id")
+    platform_code = Column(String(64), name="platform_code", comment="平台code")
+    create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
+    create_user = Column(String(32), name="create_user", comment="创建人")
+    update_time = Column(DateTime, server_onupdate=func.now(), name="update_time", comment="更新时间")
+    update_user = Column(String(32), name="update_user", comment="update_user")
+    is_delete = Column(Boolean, name="is_delete", comment="是否删除", default=False)
+
+    def to_dict(self):
+        return {
+            "b_id": self.b_id,
+            "sub_class_name": self.sub_class_name,
+            "sub_class_chart": self.sub_class_chart,
+            "brod_heading_id": self.brod_heading_id
+        }
+
+
+class ProjectState(Base):
+    """项目阶段和模板绑定"""
+    __tablename__ = "project_state"
+    """项目阶段"""
+    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
+    b_id = Column(String(128), name="b_id", comment="b_id")
+    state_name = Column(String(256), name="state_name", comment="阶段名称")
+    index = Column(Integer, name="index", comment="展示顺序")
+    template_id = Column(String(128), name="template_id", comment="模板id")
+    platform_code = Column(String(64), name="platform_code", comment="平台code")
+    create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
+    create_user = Column(String(32), name="create_user", comment="创建人")
+    update_time = Column(DateTime, server_onupdate=func.now(), name="update_time", comment="更新时间")
+    update_user = Column(String(32), name="update_user", comment="update_user")
+    is_delete = Column(Boolean, name="is_delete", comment="是否删除", default=False)
+
+    def to_dict(self):
+        return {
+            "b_id": self.b_id,
+            "state_name": self.state_name,
+            "index": self.index,
+            "template_id": self.template_id,
+            "platform_code": self.platform_code,
+        }
+
+
+class ProjectStateLog(Base):
+    """项目模板和项目做绑定"""
+    __tablename__ = "project_state_log"
+    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
+    b_id = Column(String(128), name="b_id", comment="b_id")
+    state_name = Column(String(256), name="state_name", comment="阶段名称")
+    index = Column(Integer, name="index", comment="展示顺序")
+    project_id = Column(String(128), name="project_id", comment="项目ID")
+    platform_code = Column(String(64), name="platform_code", comment="平台code")
+    create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
+    create_user = Column(String(32), name="create_user", comment="创建人")
+    update_time = Column(DateTime, server_onupdate=func.now(), name="update_time", comment="更新时间")
+    update_user = Column(String(32), name="update_user", comment="update_user")
+    is_delete = Column(Boolean, name="is_delete", comment="是否删除", default=False)
+
+
+class OptionalTable(Base):
+    __tablename__ = "optional_table"
+    """可选字段表"""
+    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
+    b_id = Column(String(128), name="b_id", comment="唯一id")
+    territory = Column(String(128), name="territory", comment="领域")
+    product_name = Column(String(128), name="product_name", comment="产品名称")
+    product_manager = Column(String(128), name="product_manager", comment="产品经理工号")
+    product_manager_code = Column(String(128), name="product_manager_code", comment="产品经理姓名")
+    develop_type = Column(String(128), name="develop_type", comment="开发类型")
+    estimate_all_day = Column(Integer, name="estimate_all_day", comment="预计总人天")
+    project_director = Column(String(128), name="project_director", comment="项目总监")
+    unit = Column(String(256), name="unit", comment="主责单位")
+    department = Column(String(256), name="department", comment="主责部门")
+    office = Column(String(256), name="office", comment="主责科室")
+    service_manager = Column(String(256), name="service_manager", comment="业务经理")
+    service_department = Column(String(256), name="service_department", comment="业务部门")
+    template_id = Column(String(128), name="template_id", comment="模板id")
+    platform_code = Column(String(64), name="platform_code", comment="平台code")
+    create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
+    create_user = Column(String(32), name="create_user", comment="创建人")
+    update_time = Column(DateTime, server_onupdate=func.now(), name="update_time", comment="更新时间")
+    update_user = Column(String(32), name="update_user", comment="update_user")
+    is_delete = Column(Boolean, name="is_delete", comment="是否删除", default=False)
+
+
+class OptionalLog(Base):
+    __tablename__ = "optional_log"
+    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
+    template_id = Column(String(128), name="template_id", comment="模板id")
+    colum = Column(String(128), name="colum", comment="字段名称")
+    is_true = Column(Boolean, name="is_true", comment="是否展示")

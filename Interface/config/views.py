@@ -46,7 +46,7 @@ async def update_department(updateDepartment: UpdateDepartment, db: Session = De
     return return_response.error()
 
 
-@router.delete("/delete/department", summary="删除部门")
+@router.post("/delete/department", summary="删除部门")
 async def delete_update(deleteDepartment: DeleteDepartment, db: Session = Depends(get_db_content)):
     judge_data = await curd.delete_department(deleteDepartment.dict(), db)
     if judge_data:
@@ -79,7 +79,7 @@ async def update_person(updatePerson: UpdatePerson, db: Session = Depends(get_db
     return return_response.error()
 
 
-@router.delete("/delete/person", summary="删除用户")
+@router.post("/delete/person", summary="删除用户")
 async def delete_person(deletePerson: DeletePerson, db: Session = Depends(get_db_content)):
     judge_data = await curd.delete_person(deletePerson.dict(), db)
     if judge_data:
@@ -97,9 +97,9 @@ async def create_spm(createSpm: CreateSpm, db: Session = Depends(get_db_content)
 
 @router.post("/search/spm", summary="查询岗位")
 async def search_spm(searchSmp: SearchSmp, db: Session = Depends(get_db_content)):
-    judge_data = await curd.search_smp(searchSmp.dict(), db)
+    judge_data, return_data = await curd.search_smp(searchSmp.dict(), db)
     if judge_data:
-        return return_response.success(judge_data)
+        return return_response.success(return_data)
     return return_response.error()
 
 
@@ -223,6 +223,30 @@ async def create_role(createRole: CreateRole, db: Session = Depends(get_db_conte
     return return_response.error()
 
 
+@router.get("/search/role", summary="查看角色")
+async def search_role(db: Session = Depends(get_db_content)):
+    judge, data = await curd.search_role(db)
+    if judge:
+        return return_response.success(data)
+    return return_response.error()
+
+
+@router.put("/update/role", summary="更新角色")
+async def update_role(updateRole: UpdateRole, db: Session = Depends(get_db_content)):
+    judge = await curd.update_role(updateRole.dict(), db)
+    if judge:
+        return return_response.success()
+    return return_response.error()
+
+
+@router.delete("/delete/role", summary="删除角色")
+async def delete_role(deleteRole: DeleteRole, db: Session = Depends(get_db_content)):
+    judge = await curd.delete_role(deleteRole, db)
+    if judge:
+        return return_response.success()
+    return return_response.error()
+
+
 @router.post("/create/mater/plate", summary="增加模版")
 async def create_master_plate(createMasterPlate: CreateMasterPlate, db: Session = Depends(get_db_content)):
     """增加模版"""
@@ -248,11 +272,78 @@ async def delete_master_plate(deleteMasterPlate: DeleteMasterPlate, db: Session 
     return return_response.error()
 
 
-@router.get("/search/master/plate", summary="查询数据")
+@router.get("/search/master/plate", summary="查询模板数据")
 async def search_master_plate(master_plate_name=Query(None), db: Session = Depends(get_db_content)):
     judge_data = await curd.search_master_plate(master_plate_name, db)
     if isinstance(judge_data, list):
         return return_response.success(judge_data)
+    return return_response.error()
+
+
+# 可选字段选择
+@router.get("/search/optional-field", summary="查看可选字段")
+async def search_optional_field():
+    judge = await curd.search_optional_field()
+    return return_response.success(judge)
+
+
+@router.post("/create/optional-log", summary="可选字段记录")
+async def create_optional_log(createOptionalLog: CreateOptionalLog, db: Session = Depends(get_db_content)):
+    judge = await curd.create_optional_log(createOptionalLog.dict(), db)
+    if judge:
+        return return_response.success()
+    return return_response.error()
+
+
+@router.get("/search/optional-log/{template_id}", summary="查看可选字段记录")
+async def search_optional_log(template_id: str, db: Session = Depends(get_db_content)):
+    judge = await curd.search_optional_log(template_id, db)
+    return return_response.success(judge)
+
+
+@router.post("/search/value-type", summary="查看字段类型")
+async def search_value_type(db: Session = Depends(get_db_content)):
+    judge_data = await curd.search_value_type(db)
+    if judge_data:
+        return return_response.success(judge_data)
+    return return_response.error()
+
+
+"""
+模版和项目阶段做绑定，敏捷和瀑布的阶段
+"""
+
+
+@router.post("/create/project-state", summary="创建项目状态")
+async def create_project_state(createProjectState: CreateProjectState, db: Session = Depends(get_db_content)):
+    judge = await curd.create_project_state(createProjectState.dict(), db)
+    if judge:
+        return return_response.success()
+    return return_response.error()
+
+
+@router.post("/search/project-state", summary="查询项目状态")
+async def search_project_state(searchProjectState: SearchProjectState, db: Session = Depends(get_db_content)):
+    """查询项目状态"""
+    judge, all_data = await curd.search_project_state(searchProjectState, db)
+    if judge:
+        return return_response.success(all_data)
+    return return_response.error()
+
+
+@router.put("/update/project-state", summary="更新项目状态")
+async def update_project_state(updateProjectState: UpdateProjectState, db: Session = Depends(get_db_content)):
+    judge = await curd.update_project_state(updateProjectState.dict(), db)
+    if judge:
+        return return_response.success()
+    return return_response.error()
+
+
+@router.delete("/delete/project-state/b_id", summary="删除项目状态")
+async def delete_project_state(b_id: str, db: Session = Depends(get_db_content)):
+    judge = await curd.delete_project_state(b_id, db)
+    if judge:
+        return return_response.success()
     return return_response.error()
 
 
@@ -270,3 +361,74 @@ async def delete_master_plate(deleteMasterPlate: DeleteMasterPlate, db: Session 
     if judge_data:
         return return_response.success()
     return return_response.error()
+
+
+@router.post("/search/brod-heading", summary="查询项目大类")
+async def search_brod_heading(searchBrodHeading: SearchBrodHeading, db: Session = Depends(get_db_content)):
+    """查询项目大类"""
+    judge, data_list = await curd.search_brod_heading(searchBrodHeading.dict(), db)
+    print(judge, "judge")
+    if judge:
+        return return_response.success(data_list)
+    return return_response.error()
+
+
+@router.post("/create/brod-heading", summary="增加项目大类")
+async def create_brod_heading(createBrodHeading: CreateBrodHeading, db: Session = Depends(get_db_content)):
+    """增加项目大类"""
+    judge, id = await curd.create_brod_heading(createBrodHeading.dict(), db)
+    if judge:
+        return return_response.success(id)
+    return return_response.error()
+
+
+@router.put("/update/brod-heading", summary="更新项目大类")
+async def update_brod_heading(updateBrodHeading: UpdateBrodHeading, db: Session = Depends(get_db_content)):
+    """更新项目大类"""
+    judge = await curd.update_brod_heading(updateBrodHeading.dict(), db)
+    if judge:
+        return return_response.success()
+    return return_response.error()
+
+
+@router.delete("/delete/brod-heading/{b_id}", summary="删除项目大类")
+async def delete_brod_heading(b_id: str, db: Session = Depends(get_db_content)):
+    """删除项目大类"""
+    judge = await curd.delete_brod_heading(b_id, db)
+    if judge:
+        return return_response.success()
+    return return_response.error()
+
+
+@router.post("/create/sub-class", summary="创建小类")
+async def create_sub_class(createSubClass: CreateSubClass, db: Session = Depends(get_db_content)):
+    judge = await curd.create_sub_class(createSubClass.dict(), db)
+    if judge:
+        return return_response.success()
+    return return_response.error()
+
+
+@router.post("/search/sub-class", summary="查询小类")
+async def search_sub_class(searchSubClass: SearchSubClass, db: Session = Depends(get_db_content)):
+    judge, data_list = await curd.search_sub_class(searchSubClass.dict(), db)
+    if judge:
+        return return_response.success(data_list)
+    return return_response.error()
+
+
+@router.put("/update/sub-class", summary="更新小类")
+async def update_sub_class(updateSubClass: UpdateSubClass, db: Session = Depends(get_db_content)):
+    judge = await curd.update_sub_class(updateSubClass.dict(), db)
+    if judge:
+        return return_response.success()
+    return return_response.error()
+
+
+@router.delete("/delete/sub-class/{b_id}", summary="删除小类")
+async def delete_sub_class(b_id: str, db: Session = Depends(get_db_content)):
+    judge = curd.delete_sub_class(b_id, db)
+    if judge:
+        return return_response.success()
+    return return_response.error()
+
+
