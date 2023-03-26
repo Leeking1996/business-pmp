@@ -96,7 +96,7 @@ class UpdateSmp(BaseModel):
 
 
 class DeleteSmp(BaseModel):
-    id: int = Field(title="岗位id")
+    id: list[int] = Field(title="岗位id")
 
 
 class CreateSysDict(BaseModel):
@@ -122,7 +122,7 @@ class UpdateSysDict(BaseModel):
 
 
 class DeleteSysDict(BaseModel):
-    id: int = Field(title="id")
+    ids: list[int] = Field(title="id")
 
 
 class SearchSysDictValue(BaseModel):
@@ -150,7 +150,6 @@ class UpdateSysDictVale(BaseModel):
 
 class CreateMenu(BaseModel):
     """创建菜单"""
-    superior_menu: Optional[str] = Field(title="上级菜单")
     menu_type: int = Field(title="菜单类型 1：菜单， 2：按钮， 3：目录")
     menu_cron: Optional[str] = Field(title="菜单图标")
     menu_name: Optional[str] = Field(title="菜单名称")
@@ -198,11 +197,11 @@ class UpdateRole(BaseModel):
     role_code: Optional[str] = Field(title="角色英文")
     role_sort: Optional[int] = Field(title="排序")
     role_state: Optional[bool] = Field(title="角色状态")
-    menu_ids: list[int] = Field(title="菜单权限id")
+    menu_ids: Optional[list[int]] = Field(None, title="菜单权限id")
 
 
 class DeleteRole(BaseModel):
-    role_id: int = Field(title="role_id")
+    role_id: list[int] = Field(title="role_id")
 
 
 class CreateMasterPlateValue(BaseModel):
@@ -212,13 +211,27 @@ class CreateMasterPlateValue(BaseModel):
     value_type: int = Field(title="字段类型")
 
 
+class OptionalField(BaseModel):
+    field: str = Field(title="字段名称")
+    is_true: bool = Field(title="是否展示")
+
+
+class CreateProjectState(BaseModel):
+    state_name: str = Field(title="状态名称")
+    index: int = Field(title="展示顺序")
+    template_id: Optional[str] = Field(title="模板id")
+
+
 class CreateMasterPlate(BaseModel):
     """创建模版"""
     name: str = Field(title="模版名称")
     code: str = Field(title="用于生成项目编码")
     template_properties: str = Field(title="模板属性")
     type: Optional[int] = Field(title="1:预言， 2: 敏捷 3: 瀑布， 4：ipd模版")
-    master_plate_value: list[CreateMasterPlateValue] = Field(title="模版名称数据")
+    master_plate_value: list[CreateMasterPlateValue] = Field(title="模版自定义数据")
+    # 可选字段。 创建可选字段, 接受字段对象， 字段名称， 是否选择， 存入到数据库中，
+    optional_field: list[OptionalField] = Field(None, title="可选字段对象")
+    project_status: list[CreateProjectState] = Field(title="项目阶段")
 
 
 class UpdateMasterPlate(BaseModel):
@@ -266,12 +279,6 @@ class UpdateSubClass(BaseModel):
     sub_class_name: Optional[str] = Field(title="小类名称")
     sub_class_chart: Optional[str] = Field(title="小类字符")
     brod_heading_id: Optional[str] = Field(title="大类id")
-
-
-class CreateProjectState(BaseModel):
-    state_name: str = Field(title="状态名称")
-    index: int = Field(title="展示顺序")
-    template_id: str = Field(title="模板id")
 
 
 class SearchProjectState(BaseModel):

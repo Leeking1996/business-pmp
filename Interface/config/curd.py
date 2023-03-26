@@ -196,13 +196,12 @@ async def update_smp(updateSmp: dict, db: Session):
     # 岗位更新
     flag = False
     try:
-        smp_id = updateSmp.get("id")
+        smp_id = updateSmp.pop("id")
         update_smp_dict = dict()
-        del updateSmp["id"]
-        for k, v in updateSmp:
+        for k, v in updateSmp.items():
             if v:
-                update_smp_dict.update({k, v})
-        db.query(SysPostManagement).filter(SysPostManagement.id.is_(smp_id)).update(update_smp_dict)
+                update_smp_dict.update({k: v})
+        db.query(SysPostManagement).filter(SysPostManagement.id == smp_id).update(update_smp_dict)
         db.commit()
         flag = True
     except Exception as e:
@@ -212,10 +211,10 @@ async def update_smp(updateSmp: dict, db: Session):
 
 
 async def delete_smp(deleteSmp: dict, db: Session):
-    id = deleteSmp.get("id")
+    ids = deleteSmp.get("id")
     flag = False
     try:
-        db.query(SysPostManagement).filter(SysPostManagement.id == id).update({"is_delete": True})
+        db.query(SysPostManagement).filter(SysPostManagement.id.in_(ids)).update({"is_delete": True})
         db.commit()
         flag = True
     except Exception as e:
@@ -228,6 +227,7 @@ async def create_sys_dict(createSysDict: dict, db: Session):
     try:
         add_ser = SysDict(**createSysDict)
         db.add(add_ser)
+        db.commit()
         flag = True
     except Exception as e:
         print(e)
@@ -237,6 +237,8 @@ async def create_sys_dict(createSysDict: dict, db: Session):
 
 async def search_sys_dict(searchSysDict: dict, db: Session):
     # 查询字典
+    flag = False
+    data = None
     q_filter = db.query(SysDict).filter(SysDict.is_delete.is_(False), SysDict.dict_state.is_(True))
     try:
         if searchSysDict.get("dict_name"):
@@ -245,11 +247,12 @@ async def search_sys_dict(searchSysDict: dict, db: Session):
             q_filter = q_filter.filter(SysDict.dict_type.like(F"%{searchSysDict.get('dict_type')}%"))
         if searchSysDict.get("dict_state"):
             q_filter = q_filter.filter(SysDict.dict_state.is_(searchSysDict.get("dict_state")))
-        return config_paging(q_filter, searchSysDict.get("page"), searchSysDict.get("size"))
+        data = config_paging(q_filter, searchSysDict.get("page"), searchSysDict.get("size"))
+        flag = True
     except Exception as e:
         print(e)
     finally:
-        return {}
+        return flag, data
 
 
 async def update_sys_dict(updateSysDict: dict, db: Session):
@@ -258,9 +261,9 @@ async def update_sys_dict(updateSysDict: dict, db: Session):
     flag = False
     for k, v in updateSysDict.items():
         if v:
-            new_update_sys_dict.update({k, v})
+            new_update_sys_dict.update({k: v})
     try:
-        db.query(SysDict).filter(SysDict.id.is_(id)).update(new_update_sys_dict)
+        db.query(SysDict).filter(SysDict.id == id).update(new_update_sys_dict)
         db.commit()
         flag = True
     except Exception as e:
@@ -270,8 +273,8 @@ async def update_sys_dict(updateSysDict: dict, db: Session):
 
 
 async def delete_sys_dict(deleteSysDict: dict, db: Session):
-    id = deleteSysDict.get("id")
-    db.query(SysDict).filter(SysDict.id.is_(id)).update({SysDict.is_delete: True})
+    ids = deleteSysDict.get("ids")
+    db.query(SysDict).filter(SysDict.id.in_(ids)).update({SysDict.is_delete: True})
     return True
 
 
@@ -328,14 +331,13 @@ async def create_menu(createMenu: dict, db: Session):
 
 async def update_menu(updateMenu: dict, db: Session):
     new_update_menu = dict()
-    # 在此处使用递归，查询数据，第一层是父级，往下进行数据的展示， 是否统一能力进行社保
     flag = False
     id = updateMenu.pop("id")
     try:
         for k, v in updateMenu.items():
             if v:
-                new_update_menu.update({k, v})
-        db.query(SysMenu).filter(SysMenu.id.is_(id)).update(new_update_menu)
+                new_update_menu.update({k: v})
+        db.query(SysMenu).filter(SysMenu.id == id).update(new_update_menu)
         db.commit()
         flag = True
     except Exception as e:
@@ -370,7 +372,7 @@ def menu_recursion(parent_id, menuData):
 
 
 async def delete_menu(deleteMenu: dict, db: Session):
-    db.query(SysMenu).filter(SysMenu.id.is_(deleteMenu.get("id"))).update({SysMenu.is_delete: True})
+    db.query(SysMenu).filter(SysMenu.id == deleteMenu.get("id")).update({SysMenu.is_delete: True})
     db.commit()
     return True
 
@@ -401,7 +403,7 @@ async def update_role(updateRole: dict, db: Session):
         role_id = updateRole.pop("role_id")
         db.query(SysRole).filter(SysRole.id == role_id).update(updateRole)
         db.query(SysRoleRelationMenu).filter(SysRoleRelationMenu.sys_role_id == role_id).delete()
-        objects = [SysRoleRelationMenu(sys_role_id=id, sys_menu_id=i) for i in menu_ids]
+        objects = [SysRoleRelationMenu(sys_role_id=id, sys_menu_id=i) for i in menu_ids if i]
         db.bulk_save_objects(objects)
         db.commit()
         flag = True
@@ -414,7 +416,7 @@ async def update_role(updateRole: dict, db: Session):
 async def delete_role(deleteRole, db):
     flag = False
     try:
-        db.query(SysRole).filter(SysRole.id == deleteRole.role_id).update({"is_delete": True})
+        db.query(SysRole).filter(SysRole.id.in_(deleteRole.role_id)).update({"is_delete": True})
         db.commit()
         flag = True
     except Exception as e:
@@ -425,10 +427,21 @@ async def delete_role(deleteRole, db):
 
 async def search_role(db: Session):
     flag = False
-    return_data = None
+    return_data = list()
     try:
         role_data = db.query(SysRole).filter(SysRole.is_delete.is_(False)).all()
-        return_data = [i.to_dict() for i in role_data]
+        # 根据角色id 查询菜单数据
+        for i in role_data:
+            role_dict = i.to_dict()
+            role_id = role_dict.get("id")
+            menus = db.query(SysMenu, SysRoleRelationMenu).join(SysMenu,
+                                                                SysMenu.id == SysRoleRelationMenu.sys_menu_id).filter(
+                SysRoleRelationMenu.sys_role_id == role_id).all()
+            if menus:
+                role_dict.update({"menus": [i.SysMenu.to_dict() for i in menus]})
+            else:
+                role_dict.update({"menus": []})
+            return_data.append(role_dict)
         flag = True
     except Exception as e:
         print(e)
@@ -436,11 +449,16 @@ async def search_role(db: Session):
         return flag, return_data
 
 
-async def create_master_plate(createMasterPlate: dict, db: Session):
-    flag = False
+def menu_digui():
+    """递归子菜单"""
 
+
+async def create_master_plate(createMasterPlate: dict, db: Session):
+    """创建模板，默认进行更新 可选字段， 自定义字段， 项目阶段"""
+
+    flag = False
     try:
-        """先创建模版， 然后在根据数据进行修改"""
+        """先创建模版"""
         master_plate_name = createMasterPlate.get("name")
         template_properties = createMasterPlate.get("template_properties")
         template_type = createMasterPlate.get("type")
@@ -449,6 +467,7 @@ async def create_master_plate(createMasterPlate: dict, db: Session):
         add_ser = MasterPlate(**{"name": master_plate_name, "b_id": b_id, "template_properties": template_properties,
                                  "type": template_type, "code": code})
         db.add(add_ser)
+        # 创建自定义字段
         master_plate_value = createMasterPlate.get("master_plate_value")
         if master_plate_value:
             objects = [MasterPlateValue(name_en=i.get("name_en"),
@@ -456,8 +475,25 @@ async def create_master_plate(createMasterPlate: dict, db: Session):
                                         value_type=i.get("value_type"),
                                         master_plate_id=b_id,
                                         b_id=gender_snow_flake_id()) for i in master_plate_value]
+
             db.bulk_save_objects(objects)
-            db.commit()
+        # 创建可选字段
+        optional_field = createMasterPlate.get("optional_field")
+        if optional_field:
+            # 如果可选字段为真， 则需要尽心数据的修改
+            objects = [OptionalLog(template_id=b_id, colum=i.get("field"), is_true=i.get("is_true")) for i in
+                       optional_field]
+
+            db.bulk_save_objects(objects)
+
+        # 项目阶段
+        project_status = createMasterPlate.get("project_status")
+        if project_status:
+            objects = [ProjectState(b_id=gender_snow_flake_id(), state_name=i.get("state_name"), index=i.get("index"),
+                                    template_id=b_id) for i in project_status]
+            db.bulk_save_objects(objects)
+        db.commit()
+        # 创建项目阶段,
         flag = True
     except Exception as e:
         print(e)
@@ -465,16 +501,11 @@ async def create_master_plate(createMasterPlate: dict, db: Session):
 
 
 async def update_master_plate(param, db: Session):
-    """创建新的模板，查询是否有项目。如果项目id为真，则需要反向更新项目模板id，
-    如果项目模板id为空，则不需要更新项目id"""
     """
-    1，更新模板的同时生成历史记录表， 把之前的数据存到log里面， 更新项目表中是否有是历史模板，返回历史表中的b_id
-    更新到项目表中，两个字段，一个：是否是历史模板， True， 二：更新模板id 为历史表中的id，模
-    
-    
-    
+    1， 更新模板直接更新模板， 根据模板创建的项目，都存在一个log表， 项目和模板表进行绑定
+    2， 更新模板创建log日志表，谁更改的， 或者不考虑日志模板， 模板修改不会影响到新的项目创建
+    3， 直接修改，自定义字段， 可选字段， 阶段数据， 不会进行数据的展示
     """
-
 
     flag = False
     try:
@@ -538,6 +569,24 @@ async def search_master_plate(master_plate_name: None, db: Session):
     all_master_data = q_filter.all()
     all_master_list = [i.to_dict() for i in all_master_data]
     return all_master_list
+
+
+async def search_master_plate_detail(b_id: str, db: Session):
+    # 根据模板id进行查询字段数据，返回可选字段， 阶段， 自定义字段
+    optional_log_data = db.query(OptionalLog).filter(OptionalLog.template_id == b_id).all()
+    # 可选字段
+    optional_log_list = [i.to_dict() for i in optional_log_data]
+
+    # 阶段
+    project_status_data = db.query(ProjectState).filter(ProjectState.template_id == b_id).order_by(
+        ProjectState.index).all()
+    project_status_list = [i.to_dict() for i in project_status_data]
+
+    # 自定义字段
+    value_data = db.query(MasterPlateValue).filter(MasterPlateValue.master_plate_id == b_id).filter(
+        MasterPlateValue.is_delete.is_(False)).all()
+    value_list = [i.to_dict() for i in value_data]
+    return {"optional": optional_log_list, "project_status": project_status_list, "value_data": value_list}
 
 
 async def search_history_master_plate(master_plate_id: str, db: Session):
@@ -711,6 +760,7 @@ async def search_project_state(params: SearchProjectState, db: Session):
             q_filter = q_filter.filter(ProjectState.template_id == params.template_id)
         q_filter.order_by(ProjectState.index)
         all_data = [i.to_dict() for i in q_filter.all()]
+        flag = True
     except Exception as e:
         print(e)
     finally:

@@ -13,7 +13,8 @@ router = APIRouter(tags=["系统配置接口"], prefix="/config")
 
 
 @router.get("/search/snow/id", summary="获取雪花id")
-async def search_snow_flake_id(datacenter_id: Optional[int], worker_id: Optional[int], sequence: Optional[int]):
+async def search_snow_flake_id(datacenter_id: Optional[int] = None, worker_id: Optional[int] = None,
+                               sequence: Optional[int] = None):
     """
        初始化
        :param datacenter_id: 数据中心（机器区域）ID
@@ -87,7 +88,7 @@ async def delete_person(deletePerson: DeletePerson, db: Session = Depends(get_db
     return return_response.error()
 
 
-@router.post("/create/spm", summary="新增岗位")
+@router.post("/create/smp", summary="新增岗位")
 async def create_spm(createSpm: CreateSpm, db: Session = Depends(get_db_content)):
     judge_data = await curd.create_smp(createSpm.dict(), db)
     if judge_data:
@@ -95,7 +96,7 @@ async def create_spm(createSpm: CreateSpm, db: Session = Depends(get_db_content)
     return return_response.error()
 
 
-@router.post("/search/spm", summary="查询岗位")
+@router.post("/search/smp", summary="查询岗位")
 async def search_spm(searchSmp: SearchSmp, db: Session = Depends(get_db_content)):
     judge_data, return_data = await curd.search_smp(searchSmp.dict(), db)
     if judge_data:
@@ -103,7 +104,7 @@ async def search_spm(searchSmp: SearchSmp, db: Session = Depends(get_db_content)
     return return_response.error()
 
 
-@router.put("/update/spm", summary="更新岗位")
+@router.put("/update/smp", summary="更新岗位")
 async def update_spm(updateSmp: UpdateSmp, db: Session = Depends(get_db_content)):
     judge_data = await curd.update_smp(updateSmp.dict(), db)
     if judge_data:
@@ -111,7 +112,7 @@ async def update_spm(updateSmp: UpdateSmp, db: Session = Depends(get_db_content)
     return return_response.error()
 
 
-@router.post("/delete/smp", summary="删除岗位")
+@router.delete("/delete/smp", summary="删除岗位")
 async def delete_smp(deleteSmp: DeleteSmp, db: Session = Depends(get_db_content)):
     judge_data = await curd.delete_smp(deleteSmp.dict(), db)
     if judge_data:
@@ -129,8 +130,9 @@ async def create_sys_dict(createSysDict: CreateSysDict, db: Session = Depends(ge
 
 @router.post("/search/sys_dict", summary="查询字典")
 async def search_sys_dict(searchSysDict: SearchSysDict, db: Session = Depends(get_db_content)):
-    judge_data = await curd.search_sys_dict(searchSysDict.dict(), db)
-    if judge_data:
+    judge, judge_data = await curd.search_sys_dict(searchSysDict.dict(), db)
+    print(judge, "judge")
+    if judge:
         return return_response.success(judge_data)
     return return_response.error()
 
@@ -280,6 +282,14 @@ async def search_master_plate(master_plate_name=Query(None), db: Session = Depen
     return return_response.error()
 
 
+@router.get("/search/master/plate/detail/{b_id}", summary="查询模板详情")
+async def search_master_plate_detail(b_id: str, db: Session = Depends(get_db_content)):
+    judge_data = await curd.search_master_plate_detail(b_id, db)
+    if isinstance(judge_data, dict):
+        return return_response.success(judge_data)
+    return return_response.error()
+
+
 # 可选字段选择
 @router.get("/search/optional-field", summary="查看可选字段")
 async def search_optional_field():
@@ -287,7 +297,7 @@ async def search_optional_field():
     return return_response.success(judge)
 
 
-@router.post("/create/optional-log", summary="可选字段记录")
+@router.post("/create/optional-log", summary="可选字段记录", include_in_schema=False)
 async def create_optional_log(createOptionalLog: CreateOptionalLog, db: Session = Depends(get_db_content)):
     judge = await curd.create_optional_log(createOptionalLog.dict(), db)
     if judge:
@@ -295,7 +305,7 @@ async def create_optional_log(createOptionalLog: CreateOptionalLog, db: Session 
     return return_response.error()
 
 
-@router.get("/search/optional-log/{template_id}", summary="查看可选字段记录")
+@router.get("/search/optional-log/{template_id}", summary="查看可选字段记录", include_in_schema=False)
 async def search_optional_log(template_id: str, db: Session = Depends(get_db_content)):
     judge = await curd.search_optional_log(template_id, db)
     return return_response.success(judge)
@@ -314,7 +324,7 @@ async def search_value_type(db: Session = Depends(get_db_content)):
 """
 
 
-@router.post("/create/project-state", summary="创建项目状态")
+@router.post("/create/project-state", summary="创建项目阶段", include_in_schema=False)
 async def create_project_state(createProjectState: CreateProjectState, db: Session = Depends(get_db_content)):
     judge = await curd.create_project_state(createProjectState.dict(), db)
     if judge:
@@ -322,7 +332,7 @@ async def create_project_state(createProjectState: CreateProjectState, db: Sessi
     return return_response.error()
 
 
-@router.post("/search/project-state", summary="查询项目状态")
+@router.post("/search/project-state", summary="查询项目阶段", include_in_schema=False)
 async def search_project_state(searchProjectState: SearchProjectState, db: Session = Depends(get_db_content)):
     """查询项目状态"""
     judge, all_data = await curd.search_project_state(searchProjectState, db)
@@ -331,7 +341,7 @@ async def search_project_state(searchProjectState: SearchProjectState, db: Sessi
     return return_response.error()
 
 
-@router.put("/update/project-state", summary="更新项目状态")
+@router.put("/update/project-state", summary="更新项目阶段", include_in_schema=False)
 async def update_project_state(updateProjectState: UpdateProjectState, db: Session = Depends(get_db_content)):
     judge = await curd.update_project_state(updateProjectState.dict(), db)
     if judge:
@@ -339,7 +349,7 @@ async def update_project_state(updateProjectState: UpdateProjectState, db: Sessi
     return return_response.error()
 
 
-@router.delete("/delete/project-state/b_id", summary="删除项目状态")
+@router.delete("/delete/project-state/b_id", summary="删除项目阶段", include_in_schema=False)
 async def delete_project_state(b_id: str, db: Session = Depends(get_db_content)):
     judge = await curd.delete_project_state(b_id, db)
     if judge:
@@ -430,5 +440,3 @@ async def delete_sub_class(b_id: str, db: Session = Depends(get_db_content)):
     if judge:
         return return_response.success()
     return return_response.error()
-
-

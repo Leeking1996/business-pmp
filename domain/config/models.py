@@ -143,7 +143,6 @@ class SysDict(Base):
             "dict_type": self.dict_type,
             "dict_state": self.dict_state,
             "remarks": self.remarks,
-            "sdv": self.sdv,
             "create_time": str(self.create_time),
             "create_user": self.create_user,
             "update_time": str(self.update_time) if self.update_time else None,
@@ -206,7 +205,11 @@ class SysRole(Base):
             "role_code": self.role_code,
             "role_sort": self.role_sort,
             "role_state": self.role_state,
-            "platform_code": self.platform_code
+            "platform_code": self.platform_code,
+            "create_time": str(self.create_time),
+            "create_user": self.create_user,
+            "update_time": str(self.update_time) if self.update_time else None,
+            "update_user": self.update_user
 
         }
 
@@ -267,8 +270,7 @@ class MasterPlate(Base):
     name = Column(String(128), name="name", comment="模版名称")
     template_properties = Column(String(128), comment="模板属性")
     code = Column(String(12), name="code", comment="用于生成项目编码")
-    type = Column(Integer, comment="模板类型， 1 软件， 2，其他")
-    project_type = Column(Integer, name="project_type", comment="软件类型下 1，敏捷 2，瀑布， 3策划")
+    type = Column(Integer, comment="模板类型1")
     platform_code = Column(String(64), name="platform_code", comment="平台code")
     create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
     create_user = Column(String(32), name="create_user", comment="创建人")
@@ -287,7 +289,6 @@ class MasterPlate(Base):
             "template_properties": self.template_properties,
             "type": self.type,
             "code": self.code,
-            "project_type": self.project_type
         }
 
 
@@ -339,10 +340,25 @@ class MasterPlateValue(Base):
     update_user = Column(String(32), name="update_user", comment="update_user")
     is_delete = Column(Boolean, name="is_delete", comment="is_delete", default=False)
 
+    def to_dict(self):
+        return {
+            "b_id": self.b_id,
+            "name_en": self.name_en,
+            "name_english": self.name_english,
+            "value_type": self.value_type,
+            "master_plate_id": self.master_plate_id,
+            "platform_code": self.platform_code,
+            "create_time": str(self.create_time),
+            "create_user": self.create_user,
+            "update_time": str(self.update_time) if self.update_time else None,
+            "update_user": self.update_user
+
+        }
+
 
 class ValueType(Base):
     __tablename__ = "value_type"
-    """类型，bool， str, int, float, """
+    """类型，bool， str, int, float"""
     id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
     type_name = Column(String(32), name="type_name", comment="类型名称")
     type_value = Column(String(32), name="type_value", comment="类型")
@@ -378,6 +394,7 @@ class BrodHeading(Base):
 
 
 class SubClass(Base):
+    # 项目小类
     __tablename__ = "sub_class"
     id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
     b_id = Column(String(128), name="b_id", comment="唯一id")
@@ -426,22 +443,6 @@ class ProjectState(Base):
         }
 
 
-class ProjectStateLog(Base):
-    """项目模板和项目做绑定"""
-    __tablename__ = "project_state_log"
-    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
-    b_id = Column(String(128), name="b_id", comment="b_id")
-    state_name = Column(String(256), name="state_name", comment="阶段名称")
-    index = Column(Integer, name="index", comment="展示顺序")
-    project_id = Column(String(128), name="project_id", comment="项目ID")
-    platform_code = Column(String(64), name="platform_code", comment="平台code")
-    create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
-    create_user = Column(String(32), name="create_user", comment="创建人")
-    update_time = Column(DateTime, server_onupdate=func.now(), name="update_time", comment="更新时间")
-    update_user = Column(String(32), name="update_user", comment="update_user")
-    is_delete = Column(Boolean, name="is_delete", comment="是否删除", default=False)
-
-
 class OptionalTable(Base):
     __tablename__ = "optional_table"
     """可选字段表"""
@@ -474,3 +475,11 @@ class OptionalLog(Base):
     template_id = Column(String(128), name="template_id", comment="模板id")
     colum = Column(String(128), name="colum", comment="字段名称")
     is_true = Column(Boolean, name="is_true", comment="是否展示")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "template_id": self.template_id,
+            "colum": self.colum,
+            "is_true": self.is_true
+        }
