@@ -13,4 +13,4 @@ mysql_db_dict = {
 }
 
 
-pmp_project_domain = "http://localhost:8031"
+pmp_project_domain = "http://39.105.56.108:8798/config"

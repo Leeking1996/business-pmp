@@ -5,6 +5,7 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, Date, func, ForeignKey, DateTime, text, JSON
 from sqlalchemy.orm import relationship
 from db import Base
+from utils.gender_snow_flake import gender_snow_flake_id
 
 """增加 platform_code 字段 用来使用多租户模式"""
 
@@ -157,6 +158,7 @@ class SysDictValue(Base):
     id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
     sys_dict_id = Column(Integer, name="sys_dict_id", comment="父级id")
     data_label = Column(String(64), name="data_label", comment="数据标签名称", nullable=False)
+    sys_dict_value = Column(String(128), name="sys_dict_value", comment="字典键值")
     sort = Column(Integer, name="sort", comment="排序")
     value_state = Column(Boolean, name="value_state", comment="状态")
     remarks = Column(String(256), name="remarks", comment="备注")
@@ -172,6 +174,7 @@ class SysDictValue(Base):
             "id": self.id,
             "data_label": self.data_label,
             "sort": self.sort,
+            "sys_dict_value": self.sys_dict_value,
             "value_state": self.value_state,
             "remarks": self.remarks,
             "create_time": str(self.create_time),
@@ -261,101 +264,6 @@ class SysMenu(Base):
         }
 
 
-# 模版表是否增加是软件类型的情况下 1，敏捷 2，瀑布
-
-class MasterPlate(Base):
-    __tablename__ = "master_plate"
-    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
-    b_id = Column(String(32), name="b_id", comment="唯一id")
-    name = Column(String(128), name="name", comment="模版名称")
-    template_properties = Column(String(128), comment="模板属性")
-    code = Column(String(12), name="code", comment="用于生成项目编码")
-    type = Column(Integer, comment="模板类型1")
-    platform_code = Column(String(64), name="platform_code", comment="平台code")
-    create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
-    create_user = Column(String(32), name="create_user", comment="创建人")
-    update_time = Column(DateTime, server_onupdate=func.now(), name="update_time", comment="更新时间")
-    update_user = Column(String(32), name="update_user", comment="update_user")
-    is_delete = Column(Boolean, name="is_delete", comment="is_delete", default=False)
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "create_name": self.create_user,
-            "create_time": str(self.create_time),
-            "b_id": self.b_id,
-            "platform_code": self.platform_code,
-            "template_properties": self.template_properties,
-            "type": self.type,
-            "code": self.code,
-        }
-
-
-class MasterPlateLog(Base):
-    __tablename__ = "master_plate_log"
-    """历史模板"""
-    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
-    master_plate_id = Column(String(65), name="master_plate_id", comment="模板id")
-    b_id = Column(String(32), name="b_id", comment="唯一id")
-    name = Column(String(128), name="name", comment="模版名称")
-    code = Column(String(12), name="code", comment="用于生成项目code")
-    type = Column(Integer, name="type", comment="模板类型， 1 软件， 2，其他")
-    project_type = Column(Integer, name="project_type", comment="软件类型下 1，敏捷 2，瀑布， 3策划")
-    platform_code = Column(String(64), name="platform_code", comment="平台code")
-    create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
-    create_user = Column(String(32), name="create_user", comment="创建人")
-    update_time = Column(DateTime, server_onupdate=func.now(), name="update_time", comment="更新时间")
-    update_user = Column(String(32), name="update_user", comment="update_user")
-    is_delete = Column(Boolean, name="is_delete", comment="is_delete", default=False)
-
-    def to_dict(self):
-        return {
-            "b_id": self.b_id,
-            "master_plate_id": self.master_plate_id,
-            "name": self.name,
-            "create_time": str(self.create_time),
-            "create_user": self.create_user,
-            "update_time": self.update_time,
-            "update_user": self.update_user,
-            "type": self.type,
-            "project_type": self.project_type
-
-        }
-
-
-class MasterPlateValue(Base):
-    __tablename__ = "master_plate_value"
-    """自定义模版属性"""
-    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
-    b_id = Column(String(32), name="b_id", comment="唯一id")
-    name_en = Column(String(128), name="name_en", comment="自定义名称")
-    name_english = Column(String(128), name="name_english", comment="自定义名称英文")
-    value_type = Column(Integer, name="value_type", comment="字段类型")
-    master_plate_id = Column(String(65), name="mater_plate_id", comment="模版id")
-    platform_code = Column(String(64), name="platform_code", comment="平台code")
-    create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
-    create_user = Column(String(32), name="create_user", comment="创建人")
-    update_time = Column(DateTime, server_onupdate=func.now(), name="update_time", comment="更新时间")
-    update_user = Column(String(32), name="update_user", comment="update_user")
-    is_delete = Column(Boolean, name="is_delete", comment="is_delete", default=False)
-
-    def to_dict(self):
-        return {
-            "b_id": self.b_id,
-            "name_en": self.name_en,
-            "name_english": self.name_english,
-            "value_type": self.value_type,
-            "master_plate_id": self.master_plate_id,
-            "platform_code": self.platform_code,
-            "create_time": str(self.create_time),
-            "create_user": self.create_user,
-            "update_time": str(self.update_time) if self.update_time else None,
-            "update_user": self.update_user
-
-        }
-
-
 class ValueType(Base):
     __tablename__ = "value_type"
     """类型，bool， str, int, float"""
@@ -417,15 +325,13 @@ class SubClass(Base):
         }
 
 
-class ProjectState(Base):
-    """项目阶段和模板绑定"""
-    __tablename__ = "project_state"
-    """项目阶段"""
-    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
-    b_id = Column(String(128), name="b_id", comment="b_id")
-    state_name = Column(String(256), name="state_name", comment="阶段名称")
-    index = Column(Integer, name="index", comment="展示顺序")
-    template_id = Column(String(128), name="template_id", comment="模板id")
+# 重新设计模板
+class SysTemplate(Base):
+    """模板名称"""
+    __tablename__ = "sys_template"
+    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False)
+    b_id = Column(String(128), name="b_id", comment="雪花id")
+    name = Column(String(256), name="name", comment="模板名称")
     platform_code = Column(String(64), name="platform_code", comment="平台code")
     create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
     create_user = Column(String(32), name="create_user", comment="创建人")
@@ -436,31 +342,17 @@ class ProjectState(Base):
     def to_dict(self):
         return {
             "b_id": self.b_id,
-            "state_name": self.state_name,
-            "index": self.index,
-            "template_id": self.template_id,
-            "platform_code": self.platform_code,
+            "name": self.name
         }
 
 
-class OptionalTable(Base):
-    __tablename__ = "optional_table"
-    """可选字段表"""
-    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
-    b_id = Column(String(128), name="b_id", comment="唯一id")
-    territory = Column(String(128), name="territory", comment="领域")
-    product_name = Column(String(128), name="product_name", comment="产品名称")
-    product_manager = Column(String(128), name="product_manager", comment="产品经理工号")
-    product_manager_code = Column(String(128), name="product_manager_code", comment="产品经理姓名")
-    develop_type = Column(String(128), name="develop_type", comment="开发类型")
-    estimate_all_day = Column(Integer, name="estimate_all_day", comment="预计总人天")
-    project_director = Column(String(128), name="project_director", comment="项目总监")
-    unit = Column(String(256), name="unit", comment="主责单位")
-    department = Column(String(256), name="department", comment="主责部门")
-    office = Column(String(256), name="office", comment="主责科室")
-    service_manager = Column(String(256), name="service_manager", comment="业务经理")
-    service_department = Column(String(256), name="service_department", comment="业务部门")
-    template_id = Column(String(128), name="template_id", comment="模板id")
+class SysTemplateSonModule(Base):
+    """模板子模块展示"""
+    __tablename__ = "sys_template_son_module"
+    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False)
+    b_id = Column(String(128), name="b_id", comment="雪花id")
+    name = Column(String(128), name="name", comment="模块名称")
+    name_en = Column(String(128), name="name_en", comment="模块英文名称")
     platform_code = Column(String(64), name="platform_code", comment="平台code")
     create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
     create_user = Column(String(32), name="create_user", comment="创建人")
@@ -469,17 +361,120 @@ class OptionalTable(Base):
     is_delete = Column(Boolean, name="is_delete", comment="是否删除", default=False)
 
 
-class OptionalLog(Base):
-    __tablename__ = "optional_log"
-    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False, name="id", comment="主键")
-    template_id = Column(String(128), name="template_id", comment="模板id")
-    colum = Column(String(128), name="colum", comment="字段名称")
-    is_true = Column(Boolean, name="is_true", comment="是否展示")
+# 可选模块
+class SysOptionalModule(Base):
+    __tablename__ = "sys_optional_module"
+    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False)
+    b_id = Column(String(128), name="b_id", comment="雪花id")
+    name = Column(String(128), name="name", comment="子模块名称")
+    optional_table = Column(String(128), name="optional_table", comment="可选模块表")
+    sort = Column(Integer, name="index", comment="顺序")
+    name_en = Column(String(64), name="name_en", comment="模块英文名称")
+    platform_code = Column(String(64), name="platform_code", comment="平台code")
+    create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
+    create_user = Column(String(32), name="create_user", comment="创建人")
+    update_time = Column(DateTime, server_onupdate=func.now(), name="update_time", comment="更新时间")
+    update_user = Column(String(32), name="update_user", comment="update_user")
+    is_delete = Column(Boolean, name="is_delete", comment="是否删除", default=False)
 
     def to_dict(self):
         return {
             "id": self.id,
+            "b_id": self.b_id,
+            "name": self.name,
+            "name_en": self.name_en,
+            "platform_code": self.platform_code,
+            "create_time": str(self.create_time),
+            "create_user": self.create_user,
+            "update_time": str(self.update_time) if self.update_time else None,
+            "update_user": self.update_user,
+            "sort": self.sort
+        }
+
+
+# 可选模块和模板做绑定
+class SysOptionalModuleTemplate(Base):
+    __tablename__ = "sys_optional_module_template"
+    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False)
+    b_id = Column(String(128), name="b_id", comment="雪花id")
+    optional_module_id = Column(String(128), name="optional_module_id", comment="可选模块id")
+    template_b_id = Column(String(128), name="template_b_id", comment="模板id")
+    is_true = Column(Boolean, name="is_true", comment="是否选择")
+    is_change = Column(Boolean, name="is_change", comment="是否能够被更改", default=False)
+    platform_code = Column(String(64), name="platform_code", comment="平台code")
+    create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
+    create_user = Column(String(32), name="create_user", comment="创建人")
+    update_time = Column(DateTime, server_onupdate=func.now(), name="update_time", comment="更新时间")
+    update_user = Column(String(32), name="update_user", comment="update_user")
+    is_delete = Column(Boolean, name="is_delete", comment="是否删除", default=False)
+
+
+class ProjectOptionalFile(Base):
+    __tablename__ = "project_optional_file"
+    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False)
+    territory = Column(String(128), name="territory", comment="领域")
+    product_name = Column(String(128), name="product_name", comment="产品名称")
+    project_id = Column(String(128), name="project_id", comment="项目id")
+    product_manager = Column(String(128), name="product_manager", comment="产品经理名称")
+    product_manager_code = Column(String(128), name="product_manager_code", comment="产品经理账号")
+    develop_type = Column(String(128), name="develop_type", comment="开发类型")
+    estimate_day = Column(Float(2), name="estimate_day", comment="预计总人天")
+    commissioner = Column(String(68), name="commissioner", comment="总监")
+    unit = Column(String(128), name="unit", comment="主责单位")
+    department = Column(String(128), name="department", comment="主责部门")
+    office = Column(String(128), name="office", comment="主责科室")
+    service_manager = Column(String(128), name="service_manager", comment="业务经理")
+    service_unit = Column(String(128), name="service_unit", comment="业务单位")
+
+
+class ChooseFiled(Base):
+    """添加自定义数据"""
+    __tablename__ = "choose_filed"
+    id = Column(Integer, autoincrement=True, primary_key=True, index=True, nullable=False)
+    b_id = Column(String(128), name="b_id", comment="b_id")
+    template_id = Column(String(128), name="template_id", comment="模版id")
+    module_id = Column(String(128), name="module_id", comment="模块id")
+    file_name = Column(String(128), name="file_name", comment="字段名称")
+    file_name_en = Column(String(128), name="file_name_en", comment="字段英文名称")
+    file_type = Column(Integer, name="file_type", comment="字段类型")
+    platform_code = Column(String(64), name="platform_code", comment="平台code")
+    create_time = Column(DateTime, default=func.now(), name="create_time", comment="创建时间")
+    create_user = Column(String(32), name="create_user", comment="创建人")
+    update_time = Column(DateTime, server_onupdate=func.now(), name="update_time", comment="更新时间")
+    update_user = Column(String(32), name="update_user", comment="update_user")
+    is_delete = Column(Boolean, name="is_delete", comment="is_delete", default=False)
+
+    def to_dict(self):
+        return {
+            "b_id": self.b_id,
             "template_id": self.template_id,
-            "colum": self.colum,
-            "is_true": self.is_true
+            "file_name": self.file_name,
+            "file_name_en": self.file_name_en,
+            "file_type": self.file_type,
+            "platform_code": self.platform_code
+
+        }
+
+
+# 可选字段表， 根据模板和子模块id进行绑定
+class OptionalField(Base):
+    __tablename__ = "optional_field"
+    """可选字段合集"""
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    b_id = Column(String(128), name="b_id", comment="b_id")
+    file_name = Column(String(128), name="file_name", comment="中文名称")
+    table_file = Column(String(128), name="table_file", comment="表字段")
+    table_name = Column(String(128), name="table_name", comment="表名称")
+    is_true = Column(Boolean, name="is_true", comment="是否选择", default=False)
+    template_id = Column(String(128), name="template_id", comment="模版id")
+    module_id = Column(String(128), name="module_id", comment="模块id")
+    is_delete = Column(Boolean, name="is_delete", comment="是否删除", default=False)
+
+    def to_dict(self):
+        return {
+            "b_id": self.b_id,
+            "file_name": self.file_name,
+            "is_true": self.is_true,
+            "template_id": self.template_id,
+            "module_id": self.module_id
         }

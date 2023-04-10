@@ -2,14 +2,17 @@
 # Author: lee
 # 2023/2/1 23:01
 # Func: 方法实现区
-import math
+import time
 
 from sqlalchemy.orm import Session
 from domain.config.models import *
-from domain.config.schemy import SearchProjectState
+from domain.config.schemy import UpdateSonState, OptionalFileList
+from domain.project_plan.models import *
 from utils.config import config_paging
 from utils.encryption import MyDESCrypt
 from utils.gender_snow_flake import gender_snow_flake_id
+# 不能删除，创建模板时，通过数据进行展示
+from domain.team.models import *
 
 
 async def create_department(createDepartment, db: Session):
@@ -274,19 +277,29 @@ async def update_sys_dict(updateSysDict: dict, db: Session):
 
 async def delete_sys_dict(deleteSysDict: dict, db: Session):
     ids = deleteSysDict.get("ids")
-    db.query(SysDict).filter(SysDict.id.in_(ids)).update({SysDict.is_delete: True})
+
+    db.query(SysDict).filter(SysDict.id.in_(ids)).update({"is_delete": True})
+    db.commit()
     return True
 
 
 async def search_sys_dict_value(searchSysDictValue: dict, db: Session):
-    parent_id = searchSysDictValue.get("parent_id")
-    q_filter = db.query(SysDictValue).filter(SysDictValue.id == parent_id)
-    if searchSysDictValue.get("dict_label"):
-        q_filter = q_filter.filter(SysDictValue.data_label.like(F"{searchSysDictValue.get('dict_label')}"))
-    if searchSysDictValue.get("dict_state"):
-        q_filter = q_filter.filter(SysDictValue.value_state.is_(searchSysDictValue.get('dict_state')))
-    all_data = [i.to_dict() for i in q_filter.order_by(SysDictValue.sort).all()]
-    return all_data
+    flag = False
+    all_data = None
+    try:
+        sys_dict_id = searchSysDictValue.get("sys_dict_id")
+        q_filter = db.query(SysDictValue).filter(SysDictValue.sys_dict_id == sys_dict_id,
+                                                 SysDictValue.is_delete.is_(False))
+        if searchSysDictValue.get("dict_label"):
+            q_filter = q_filter.filter(SysDictValue.data_label.like(F"{searchSysDictValue.get('dict_label')}"))
+        if searchSysDictValue.get("dict_state"):
+            q_filter = q_filter.filter(SysDictValue.value_state.is_(searchSysDictValue.get('dict_state')))
+        all_data = [i.to_dict() for i in q_filter.order_by(SysDictValue.sort).all()]
+        flag = True
+    except Exception as e:
+        print(e)
+    finally:
+        return flag, all_data
 
 
 async def create_sys_dict_value(createSysDictValue: dict, db: Session):
@@ -304,8 +317,8 @@ async def update_sys_dict_value(updateSysDictValue: dict, db: Session):
     try:
         for k, v in updateSysDictValue.items():
             if v:
-                new_update_sys_dict_value.update({k, v})
-        db.query(SysDictValue).filter(SysDictValue.id.is_(id)).update(new_update_sys_dict_value)
+                new_update_sys_dict_value.update({k: v})
+        db.query(SysDictValue).filter(SysDictValue.id == id).update(new_update_sys_dict_value)
         db.commit()
         flag = True
     except Exception as e:
@@ -315,8 +328,8 @@ async def update_sys_dict_value(updateSysDictValue: dict, db: Session):
 
 
 async def delete_sys_dict_value(deleteSysDictValue: dict, db: Session):
-    id = deleteSysDictValue.get("id")
-    db.query(SysDictValue).filter(SysDictValue.id.is_(id)).update({SysDictValue.is_delete: True})
+    ids = deleteSysDictValue.get("ids")
+    db.query(SysDictValue).filter(SysDictValue.id.in_(ids)).update({"is_delete": True})
     db.commit()
     return True
 
@@ -347,15 +360,21 @@ async def update_menu(updateMenu: dict, db: Session):
 
 
 async def search_menu(searchMenu: dict, db: Session):
-    all_data = db.query(SysMenu).filter(SysMenu.is_delete.is_(False), SysMenu.parent_id.is_(None)).all()
-    all_menu_data = list()
-    for one_menu in all_data:
-        children = menu_recursion(one_menu.id, one_menu.menuData)
-        one_menu_dict = one_menu.to_dict()
-        one_menu_dict.update({"children": children})
-        all_menu_data.append(one_menu_dict)
-
-    return all_menu_data
+    flag = False,
+    all_menu_data = None
+    try:
+        all_data = db.query(SysMenu).filter(SysMenu.is_delete.is_(False), SysMenu.parent_id.is_(None)).all()
+        all_menu_data = list()
+        for one_menu in all_data:
+            children = menu_recursion(one_menu.id, one_menu.menuData)
+            one_menu_dict = one_menu.to_dict()
+            one_menu_dict.update({"children": children})
+            all_menu_data.append(one_menu_dict)
+        flag = True
+    except Exception as e:
+        print(e)
+    finally:
+        return flag, all_menu_data
 
 
 def menu_recursion(parent_id, menuData):
@@ -399,11 +418,11 @@ async def update_role(updateRole: dict, db: Session):
     # 获取菜单权限
     flag = False
     try:
-        menu_ids = updateRole.pop("menu_ids")
+        menu_ids = updateRole.pop("menus")
         role_id = updateRole.pop("role_id")
         db.query(SysRole).filter(SysRole.id == role_id).update(updateRole)
         db.query(SysRoleRelationMenu).filter(SysRoleRelationMenu.sys_role_id == role_id).delete()
-        objects = [SysRoleRelationMenu(sys_role_id=id, sys_menu_id=i) for i in menu_ids if i]
+        objects = [SysRoleRelationMenu(sys_role_id=role_id, sys_menu_id=i) for i in menu_ids if i]
         db.bulk_save_objects(objects)
         db.commit()
         flag = True
@@ -449,168 +468,6 @@ async def search_role(db: Session):
         return flag, return_data
 
 
-def menu_digui():
-    """递归子菜单"""
-
-
-async def create_master_plate(createMasterPlate: dict, db: Session):
-    """创建模板，默认进行更新 可选字段， 自定义字段， 项目阶段"""
-
-    flag = False
-    try:
-        """先创建模版"""
-        master_plate_name = createMasterPlate.get("name")
-        template_properties = createMasterPlate.get("template_properties")
-        template_type = createMasterPlate.get("type")
-        code = createMasterPlate.get("code")
-        b_id = gender_snow_flake_id()
-        add_ser = MasterPlate(**{"name": master_plate_name, "b_id": b_id, "template_properties": template_properties,
-                                 "type": template_type, "code": code})
-        db.add(add_ser)
-        # 创建自定义字段
-        master_plate_value = createMasterPlate.get("master_plate_value")
-        if master_plate_value:
-            objects = [MasterPlateValue(name_en=i.get("name_en"),
-                                        name_english=i.get("name_english"),
-                                        value_type=i.get("value_type"),
-                                        master_plate_id=b_id,
-                                        b_id=gender_snow_flake_id()) for i in master_plate_value]
-
-            db.bulk_save_objects(objects)
-        # 创建可选字段
-        optional_field = createMasterPlate.get("optional_field")
-        if optional_field:
-            # 如果可选字段为真， 则需要尽心数据的修改
-            objects = [OptionalLog(template_id=b_id, colum=i.get("field"), is_true=i.get("is_true")) for i in
-                       optional_field]
-
-            db.bulk_save_objects(objects)
-
-        # 项目阶段
-        project_status = createMasterPlate.get("project_status")
-        if project_status:
-            objects = [ProjectState(b_id=gender_snow_flake_id(), state_name=i.get("state_name"), index=i.get("index"),
-                                    template_id=b_id) for i in project_status]
-            db.bulk_save_objects(objects)
-        db.commit()
-        # 创建项目阶段,
-        flag = True
-    except Exception as e:
-        print(e)
-    return flag
-
-
-async def update_master_plate(param, db: Session):
-    """
-    1， 更新模板直接更新模板， 根据模板创建的项目，都存在一个log表， 项目和模板表进行绑定
-    2， 更新模板创建log日志表，谁更改的， 或者不考虑日志模板， 模板修改不会影响到新的项目创建
-    3， 直接修改，自定义字段， 可选字段， 阶段数据， 不会进行数据的展示
-    """
-
-    flag = False
-    try:
-        # 根据模板id查询项目ID，如果项目id为空，则直接修改，并且记录到日志表中， 如果有数据，反向修改 项目表中的 模板id
-        master_plate_id = param.get("master_plate_id")
-        # 根据模板反差项目是否有用着模板id
-        master_plate = db.query(MasterPlate).filter(MasterPlate.b_id == master_plate_id).first()
-        master_plate_log_id = gender_snow_flake_id()
-        is_use_master_plate_project = False
-        if is_use_master_plate_project:
-            """有项目用着，需要更新数据"""
-
-            pass
-        else:
-            """没有项目用着,"""
-        create_master_plate_log_dict = {"master_plate_id": master_plate.b_id,
-                                        "name": master_plate.name,
-                                        "b_id": master_plate_log_id,
-                                        "platform_code": master_plate.platform_code,
-                                        "type": master_plate.type,
-                                        "template_properties": master_plate.template_properties}
-        add_ser = MasterPlateLog(**create_master_plate_log_dict)
-        # 在这快根据模板id进行数据的反查
-
-        db.add(add_ser)
-        # 把值表中的数据修改成 日志表中的id
-        db.query(MasterPlateValue).filter(MasterPlateValue.master_plate_id == master_plate_id).update(
-            {"master_plate_id": master_plate_log_id})
-
-        # 添加数据
-        master_plate_value = param.get("master_plate_value")
-        if master_plate_value:
-            objects = [MasterPlateValue(name_en=i.get("name_en"),
-                                        name_english=i.get("name_english"),
-                                        value_type=i.get("value_type"),
-                                        master_plate_id=master_plate_id,
-                                        b_id=gender_snow_flake_id()) for i in master_plate_value]
-            db.bulk_save_objects(objects)
-        db.query(MasterPlate).filter(MasterPlate.b_id == master_plate_id).update({"name": param.get("name")})
-        db.commit()
-        flag = True
-    except Exception as e:
-        print(e)
-        db.rollback()
-
-    finally:
-        return flag
-
-
-async def delete_master_plate(param: dict, db: Session):
-    db.query(MasterPlate).filter(MasterPlate.b_id == param.get("master_plate_id")).update({"is_delete": True})
-    db.commit()
-    return True
-
-
-async def search_master_plate(master_plate_name: None, db: Session):
-    """查询模板"""
-    q_filter = db.query(MasterPlate).filter(MasterPlate.is_delete.is_(False))
-    if master_plate_name:
-        q_filter = q_filter.filter(MasterPlate.name.ilike(F"%{master_plate_name}%"))
-    all_master_data = q_filter.all()
-    all_master_list = [i.to_dict() for i in all_master_data]
-    return all_master_list
-
-
-async def search_master_plate_detail(b_id: str, db: Session):
-    # 根据模板id进行查询字段数据，返回可选字段， 阶段， 自定义字段
-    optional_log_data = db.query(OptionalLog).filter(OptionalLog.template_id == b_id).all()
-    # 可选字段
-    optional_log_list = [i.to_dict() for i in optional_log_data]
-
-    # 阶段
-    project_status_data = db.query(ProjectState).filter(ProjectState.template_id == b_id).order_by(
-        ProjectState.index).all()
-    project_status_list = [i.to_dict() for i in project_status_data]
-
-    # 自定义字段
-    value_data = db.query(MasterPlateValue).filter(MasterPlateValue.master_plate_id == b_id).filter(
-        MasterPlateValue.is_delete.is_(False)).all()
-    value_list = [i.to_dict() for i in value_data]
-    return {"optional": optional_log_list, "project_status": project_status_list, "value_data": value_list}
-
-
-async def search_history_master_plate(master_plate_id: str, db: Session):
-    """查看历史模板数据"""
-    history_master_plate_data = db.query(MasterPlateLog).filter(MasterPlateLog.master_plate_id == master_plate_id,
-                                                                MasterPlateLog.is_delete.is_(False)).all()
-    return [i.to_dict() for i in history_master_plate_data]
-
-
-async def delete_history_master_plate(deleteMasterHistory: dict, db: Session):
-    """删除历史数据"""
-    flag = False
-    try:
-        db.query(MasterPlateLog).filter(MasterPlateLog.b_id == deleteMasterHistory.get("master_plate_id")).update(
-            {"is_delete": True})
-        db.commit()
-        flag = True
-    except Exception as e:
-        print(e)
-        db.rollback()
-    finally:
-        return flag
-
-
 async def create_brod_heading(params: dict, db: Session):
     """创建项目大类"""
     flag = False
@@ -639,10 +496,10 @@ async def update_brod_heading(params: dict, db: Session):
         return flag
 
 
-async def delete_brod_heading(b_id: str, db: Session):
+async def delete_brod_heading(b_ids, db: Session):
     flag = False
     try:
-        db.query(BrodHeading).filter(BrodHeading.b_id == b_id).update({"is_delete": True})
+        db.query(BrodHeading).filter(BrodHeading.b_id.in_(b_ids.b_ids)).update({"is_delete": True})
         db.commit()
         flag = True
     except Exception as e:
@@ -660,7 +517,15 @@ async def search_brod_heading(params: dict, db: Session):
             q_filter = q_filter.filter(BrodHeading.brod_name.like(F"%{params.get('brod_name')}%"))
         if params.get("brod_chart"):
             q_filter = q_filter.filter(BrodHeading.brod_chart == params.get("brod_chart"))
-        data_list = [i.to_dict() for i in q_filter.all()]
+        # 循环查询小类数据
+        data_list = list()
+        for i in q_filter.all():
+            b_id = i.b_id
+            sub_class = db.query(SubClass).filter(SubClass.brod_heading_id == b_id, SubClass.is_delete.is_(False)).all()
+            sub_class_list = [i.to_dict() for i in sub_class]
+            brod_class_dict = i.to_dict()
+            brod_class_dict.update({"sub_class_list": sub_class_list})
+            data_list.append(brod_class_dict)
         flag = True
     except Exception as e:
         print(e)
@@ -721,10 +586,11 @@ async def update_sub_class(params: dict, db: Session):
         return flag
 
 
-async def delete_sub_class(b_id: str, db: Session):
+async def delete_sub_class(b_ids, db: Session):
     flag = False
     try:
-        db.query(SubClass).filter(SubClass.b_id == b_id).update({"is_delete": True})
+        print(b_ids, "b_ids")
+        db.query(SubClass).filter(SubClass.b_id.in_(b_ids.b_ids)).update({"is_delete": True})
         db.commit()
         flag = True
     except Exception as e:
@@ -733,13 +599,18 @@ async def delete_sub_class(b_id: str, db: Session):
         return flag
 
 
-async def create_project_state(params: dict, db: Session):
-    """创建状态"""
-    flag = True
+async def search_value_type(db: Session):
+    value_data = db.query(ValueType).all()
+    return [i.to_dict() for i in value_data]
+
+
+# 创建可选模版函数
+async def create_optional_module(params: dict, db: Session):
+    flag = False
     try:
         b_id = gender_snow_flake_id()
-        params.update(b_id=b_id)
-        add_ser = ProjectState(**params)
+        create_module_dict = {"name": params.get("name"), "name_en": params.get("name_en"), "b_id": b_id}
+        add_ser = SysOptionalModule(**create_module_dict)
         db.add(add_ser)
         db.commit()
         flag = True
@@ -749,33 +620,10 @@ async def create_project_state(params: dict, db: Session):
         return flag
 
 
-async def search_project_state(params: SearchProjectState, db: Session):
+async def delete_optional_module(params, db: Session):
     flag = False
-    all_data = None
     try:
-        q_filter = db.query(ProjectState)
-        if params.state_name:
-            q_filter = q_filter.filter(ProjectState.state_name.like(F"%{params.state_name}%"))
-        if params.template_id:
-            q_filter = q_filter.filter(ProjectState.template_id == params.template_id)
-        q_filter.order_by(ProjectState.index)
-        all_data = [i.to_dict() for i in q_filter.all()]
-        flag = True
-    except Exception as e:
-        print(e)
-    finally:
-        return flag, all_data
-
-
-async def update_project_state(params: dict, db: Session):
-    flag = False
-    new_params = dict()
-    try:
-        b_id = params.pop("b_id")
-        for k, v in params.items():
-            if v:
-                new_params.update({k: v})
-        db.query(ProjectState).filter(ProjectState.b_id == b_id).update(new_params)
+        db.query(SysOptionalModule).filter(SysOptionalModule.b_id.in_(params.b_ids)).update({"is_delete": True})
         db.commit()
         flag = True
     except Exception as e:
@@ -784,31 +632,132 @@ async def update_project_state(params: dict, db: Session):
         return flag
 
 
-async def delete_project_state(b_id: str, db: Session):
-    db.query(ProjectState).filter(ProjectState.b_id == b_id).update({"is_delete": True})
+async def update_optional_module(params: dict, db: Session):
+    flag = False
+    try:
+        b_id = params.pop("b_id")
+        new_update_dict = dict()
+        for k, v in params.items():
+            if v:
+                new_update_dict.update({k: v})
+        db.query(SysOptionalModule).filter(SysOptionalModule.b_id == b_id).update(new_update_dict)
+        db.commit()
+        flag = True
+    except Exception as e:
+        print(e)
+    finally:
+        return flag
+
+
+async def search_optional_module(db: Session):
+    flag = False
+    data = None
+    try:
+        all_data = db.query(SysOptionalModule).filter(SysOptionalModule.is_delete.is_(False)).all()
+        data = [i.to_dict() for i in all_data]
+        flag = True
+    except Exception as e:
+        print(e)
+    finally:
+        return flag, data
+
+
+# 创建模板
+async def create_template(params: dict, db: Session):
+    """创建模板， 拿到数据，更新到数据中，配置进行写死"""
+    flag = False
+    template_b_id = gender_snow_flake_id()
+    try:
+        add_ser = SysTemplate(**{"b_id": template_b_id, "name": params.get("name")})
+        db.add(add_ser)
+        # 获取子模块，保存到数据中，保存到数据中
+        son_modules = db.query(SysOptionalModule).all()
+        objects = list()
+        for son_module in son_modules:
+            son_module_b_id = gender_snow_flake_id()
+            objects.append(
+                SysOptionalModuleTemplate(b_id=son_module_b_id, optional_module_id=son_module.b_id, is_true=False,
+                                          template_b_id=template_b_id))
+            # 可选字段和模版数据做绑定
+            optional_table = son_module.optional_table
+            if not optional_table:
+                continue
+            optional_table_name = globals().get(optional_table)
+            files = optional_table_name.__table__.columns
+            for file in files:
+                if file.key in ["id", "b_id"]:
+                    continue
+                # 保存数据到可选字段表中
+                objects.append(
+                    OptionalField(file_name=file.comment, table_file=file.key, table_name=optional_table,
+                                  is_true=False, template_id=template_b_id, module_id=son_module.b_id,
+                                  b_id=gender_snow_flake_id()))
+        # 创建模板时，同时创建项目阶段
+        project_states = params.get("project_states")
+        for project_state in project_states:
+            objects.append(ProjectState(b_id=gender_snow_flake_id(), state_name=project_state.get("state_name"),
+                                        template_id=template_b_id, sort=project_state.get("sort")))
+        db.bulk_save_objects(objects)
+        db.commit()
+        flag = True
+    except Exception as e:
+        print(e)
+
+    return flag, template_b_id
+
+
+async def search_template_details(template_id: str, db: Session):
+    """查看模板详情，查看可选字段名称和id，前端通过调用模版的名称进行数据的查询，通过可选模版的数据进行数据的展示"""
+    flag = False
+    data = list()
+    try:
+        all_data = db.query(SysOptionalModule.b_id,
+                            SysOptionalModuleTemplate.is_true,
+                            SysOptionalModuleTemplate.is_change,
+                            SysOptionalModule.name).join(SysOptionalModule,
+                                                         SysOptionalModuleTemplate.optional_module_id == SysOptionalModule.b_id).filter(
+            SysOptionalModuleTemplate.template_b_id == template_id).all()
+
+        for one_data in all_data:
+            # TODO 判断当前登录人是不是管理员权限， 如果是管理员权限，则需要修改is_change 是能够被修改的
+
+            data.append({"b_id": one_data.b_id, "is_true": one_data.is_true, "name": one_data.name,
+                         "is_change": one_data.is_change})
+
+        flag = True
+    except Exception as e:
+        print(e)
+    finally:
+        return flag, data
+
+
+async def search_template(db: Session):
+    all_data = db.query(SysTemplate).filter(SysTemplate.is_delete.is_(False)).all()
+    objects = list()
+    for i in all_data:
+        b_id = i.b_id
+        states = db.query(ProjectState).filter(ProjectState.template_id == b_id,
+                                               ProjectState.is_delete.is_(False)).all()
+        data = i.to_dict()
+        data.update({"project_states": [i.to_dict() for i in states]})
+        objects.append(data)
+
+    return objects
+
+
+async def delete_template(params, db: Session):
+    db.query(SysTemplate).filter(SysTemplate.b_id.in_(params.b_ids)).update({"is_delete": True})
     db.commit()
     return True
 
 
-async def search_value_type(db: Session):
-    value_data = db.query(ValueType).all()
-    return [i.to_dict() for i in value_data]
-
-
-async def search_optional_field():
-    # 去掉字符串第一位是_
-    data = [i for i in OptionalTable.__dict__.keys() if i[0] != "_"]
-    return data
-
-
-async def create_optional_log(params: dict, db: Session):
-    """保存数据"""
+async def update_template_son_module_state(params: UpdateSonState, db: Session):
+    """根据模板和自模块的b_id 修改数据是否展示"""
     flag = False
     try:
-        template_id = params.get("template_id")
-        optionals = params.get("optionals")
-        data = [OptionalLog(colum=i.get("colum"), is_true=i.get("is_true"), template_id=template_id) for i in optionals]
-        db.bulk_save_objects(data)
+        db.query(SysOptionalModuleTemplate).filter(SysOptionalModuleTemplate.template_b_id == params.template_id,
+                                                   SysOptionalModuleTemplate.optional_module_id == params.module_id).update(
+            {"is_true": params.is_true, "is_change": params.is_change})
         db.commit()
         flag = True
     except Exception as e:
@@ -817,6 +766,82 @@ async def create_optional_log(params: dict, db: Session):
         return flag
 
 
-async def search_optional_log(params: str, db):
-    data = db.query(OptionalLog).filter(OptionalLog.template_id == params).all()
-    return [{"id": i.id, "template_id": i.template_id, "colum": i.colum, "is_true": i.is_true} for i in data]
+async def search_project_optional_field(template_id: str, module_id, db: Session):
+    """返回可选字段"""
+    all_data = list()
+    # 查看自定义字段属性
+    choose_data = db.query(ChooseFiled, ValueType.type_name).join(
+        ValueType,
+        ValueType.id == ChooseFiled.file_type).filter(
+        ChooseFiled.template_id == template_id,
+        ChooseFiled.module_id == module_id).all()
+
+    for one_choose in choose_data:
+        all_data.append(
+            {"file_name": one_choose.ChooseFiled.file_name, "file_name_en": one_choose.ChooseFiled.file_name_en,
+             "file_type": one_choose.type_name, "custom_field": True, "is_true": True,
+             "template_id": one_choose.ChooseFiled.template_id, "module_id": one_choose.ChooseFiled.module_id
+             })
+    # 根据模板id查看可选字段
+    optionals = db.query(OptionalField).filter(OptionalField.template_id == template_id,
+                                               OptionalField.module_id == module_id).all()
+    for i in optionals:
+        one_optional = i.to_dict()
+        one_optional.update({"custom_field": False})
+        all_data.append(one_optional)
+    return all_data
+
+
+async def update_optional_file(data: OptionalFileList, db: Session):
+    """批量更新可选字段状态"""
+    flag = False
+    try:
+        template_id = data.template_id
+        module_id = data.module_id
+        optional_list = data.optional_list
+        choose_files = data.choose_files
+
+        db.query(OptionalField).filter(OptionalField.template_id == template_id,
+                                       OptionalField.module_id == module_id).update({"is_true": False})
+        is_true_ids = [i.b_id for i in optional_list if i.is_true]
+        db.query(OptionalField).filter(OptionalField.b_id.in_(is_true_ids)).update({"is_true": True})
+        # 自定义字段属性
+        objects = list()
+        db.query(ChooseFiled).filter(ChooseFiled.template_id == template_id, ChooseFiled.module_id == module_id).update(
+            {"is_delete": True})
+        for one_choose in choose_files:
+            b_id = gender_snow_flake_id()
+            objects.append(ChooseFiled(b_id=b_id, template_id=template_id, module_id=module_id,
+                                       file_name=one_choose.file_name, file_name_en=one_choose.file_name_en,
+                                       file_type=one_choose.file_type))
+        db.bulk_save_objects(objects)
+        db.commit()
+        db.flush()
+        flag = True
+    except Exception as e:
+        print(e)
+
+    finally:
+        return flag
+
+
+async def update_template(updateTemplate, db: Session):
+    """更新模板"""
+    flag = False
+    template_id = updateTemplate.template_id
+    objects = list()
+    try:
+        db.query(SysTemplate).filter(SysTemplate.b_id == template_id).update({"name": updateTemplate.name})
+        db.query(ProjectState).filter(ProjectState.template_id == template_id).update({"is_delete": True})
+
+        for one_project_state in updateTemplate.project_states:
+            b_id = gender_snow_flake_id()
+            objects.append(ProjectState(b_id=b_id, template_id=template_id, state_name=one_project_state.state_name,
+                                        sort=one_project_state.sort))
+        db.bulk_save_objects(objects)
+        db.commit()
+        flag = True
+    except Exception as e:
+        print(e)
+    finally:
+        return flag

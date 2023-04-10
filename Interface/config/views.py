@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 # Author: lee
 # 2023/2/1 22:57
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from utils.gender_snow_flake import gender_snow_flake_id
 from db.content_db import get_db_content
@@ -155,9 +155,9 @@ async def delete_sys_dict(deleteSysDict: DeleteSysDict, db: Session = Depends(ge
 
 @router.post("/search/sys_dict_value", summary="查询子集字典")
 async def search_sys_dict_value(searchSysDictValue: SearchSysDictValue, db: Session = Depends(get_db_content)):
-    judge_data = await curd.search_sys_dict_value(searchSysDictValue.dict(), db)
-    if judge_data:
-        return return_response.success(judge_data)
+    judge, data = await curd.search_sys_dict_value(searchSysDictValue.dict(), db)
+    if judge:
+        return return_response.success(data)
     return return_response.error()
 
 
@@ -173,7 +173,7 @@ async def create_sys_dict_value(createSysDictValue: CreateSysDictValue, db: Sess
 async def update_sys_dict_value(updateSysDictValue: UpdateSysDictVale, db: Session = Depends(get_db_content)):
     judge_data = await curd.update_sys_dict_value(updateSysDictValue.dict(), db)
     if judge_data:
-        return return_response.success(judge_data)
+        return return_response.success()
     return return_response.error()
 
 
@@ -203,9 +203,9 @@ async def update_menu(updateMenu: UpdateMenu, db: Session = Depends(get_db_conte
 
 @router.post("/search/menu", summary="查看菜单")
 async def search_menu(searchMenu: SearchMenu, db: Session = Depends(get_db_content)):
-    judge_data = await curd.search_menu(searchMenu.dict(), db)
-    if judge_data:
-        return return_response.success(judge_data)
+    judge, data = await curd.search_menu(searchMenu.dict(), db)
+    if judge:
+        return return_response.success(data)
     return return_response.error()
 
 
@@ -249,68 +249,6 @@ async def delete_role(deleteRole: DeleteRole, db: Session = Depends(get_db_conte
     return return_response.error()
 
 
-@router.post("/create/mater/plate", summary="增加模版")
-async def create_master_plate(createMasterPlate: CreateMasterPlate, db: Session = Depends(get_db_content)):
-    """增加模版"""
-    judge_data = await curd.create_master_plate(createMasterPlate.dict(), db)
-    if judge_data:
-        return return_response.success()
-    return return_response.error()
-
-
-@router.put("/update/master/plate", summary="更新模版")
-async def update_master_plate(updateMasterPlate: UpdateMasterPlate, db: Session = Depends(get_db_content)):
-    judge = await curd.update_master_plate(updateMasterPlate.dict(), db)
-    if judge:
-        return return_response.success()
-    return return_response.error()
-
-
-@router.delete("/delete/master/plate", summary="删除模板")
-async def delete_master_plate(deleteMasterPlate: DeleteMasterPlate, db: Session = Depends(get_db_content)):
-    judge_data = await curd.delete_master_plate(deleteMasterPlate.dict(), db)
-    if judge_data:
-        return return_response.success()
-    return return_response.error()
-
-
-@router.get("/search/master/plate", summary="查询模板数据")
-async def search_master_plate(master_plate_name=Query(None), db: Session = Depends(get_db_content)):
-    judge_data = await curd.search_master_plate(master_plate_name, db)
-    if isinstance(judge_data, list):
-        return return_response.success(judge_data)
-    return return_response.error()
-
-
-@router.get("/search/master/plate/detail/{b_id}", summary="查询模板详情")
-async def search_master_plate_detail(b_id: str, db: Session = Depends(get_db_content)):
-    judge_data = await curd.search_master_plate_detail(b_id, db)
-    if isinstance(judge_data, dict):
-        return return_response.success(judge_data)
-    return return_response.error()
-
-
-# 可选字段选择
-@router.get("/search/optional-field", summary="查看可选字段")
-async def search_optional_field():
-    judge = await curd.search_optional_field()
-    return return_response.success(judge)
-
-
-@router.post("/create/optional-log", summary="可选字段记录", include_in_schema=False)
-async def create_optional_log(createOptionalLog: CreateOptionalLog, db: Session = Depends(get_db_content)):
-    judge = await curd.create_optional_log(createOptionalLog.dict(), db)
-    if judge:
-        return return_response.success()
-    return return_response.error()
-
-
-@router.get("/search/optional-log/{template_id}", summary="查看可选字段记录", include_in_schema=False)
-async def search_optional_log(template_id: str, db: Session = Depends(get_db_content)):
-    judge = await curd.search_optional_log(template_id, db)
-    return return_response.success(judge)
-
-
 @router.post("/search/value-type", summary="查看字段类型")
 async def search_value_type(db: Session = Depends(get_db_content)):
     judge_data = await curd.search_value_type(db)
@@ -319,65 +257,10 @@ async def search_value_type(db: Session = Depends(get_db_content)):
     return return_response.error()
 
 
-"""
-模版和项目阶段做绑定，敏捷和瀑布的阶段
-"""
-
-
-@router.post("/create/project-state", summary="创建项目阶段", include_in_schema=False)
-async def create_project_state(createProjectState: CreateProjectState, db: Session = Depends(get_db_content)):
-    judge = await curd.create_project_state(createProjectState.dict(), db)
-    if judge:
-        return return_response.success()
-    return return_response.error()
-
-
-@router.post("/search/project-state", summary="查询项目阶段", include_in_schema=False)
-async def search_project_state(searchProjectState: SearchProjectState, db: Session = Depends(get_db_content)):
-    """查询项目状态"""
-    judge, all_data = await curd.search_project_state(searchProjectState, db)
-    if judge:
-        return return_response.success(all_data)
-    return return_response.error()
-
-
-@router.put("/update/project-state", summary="更新项目阶段", include_in_schema=False)
-async def update_project_state(updateProjectState: UpdateProjectState, db: Session = Depends(get_db_content)):
-    judge = await curd.update_project_state(updateProjectState.dict(), db)
-    if judge:
-        return return_response.success()
-    return return_response.error()
-
-
-@router.delete("/delete/project-state/b_id", summary="删除项目阶段", include_in_schema=False)
-async def delete_project_state(b_id: str, db: Session = Depends(get_db_content)):
-    judge = await curd.delete_project_state(b_id, db)
-    if judge:
-        return return_response.success()
-    return return_response.error()
-
-
-@router.get("/search/history/master/plate", summary="查看历史数据")
-async def search_history_master_plate(master_plate_id: str, db: Session = Depends(get_db_content)):
-    judge_data = await curd.search_history_master_plate(master_plate_id, db)
-    if judge_data:
-        return return_response.success(judge_data)
-    return return_response.error()
-
-
-@router.delete("/delete/history/master/plate", summary="删除历史模板")
-async def delete_master_plate(deleteMasterPlate: DeleteMasterPlate, db: Session = Depends(get_db_content)):
-    judge_data = await curd.delete_history_master_plate(deleteMasterPlate.dict(), db)
-    if judge_data:
-        return return_response.success()
-    return return_response.error()
-
-
 @router.post("/search/brod-heading", summary="查询项目大类")
 async def search_brod_heading(searchBrodHeading: SearchBrodHeading, db: Session = Depends(get_db_content)):
     """查询项目大类"""
     judge, data_list = await curd.search_brod_heading(searchBrodHeading.dict(), db)
-    print(judge, "judge")
     if judge:
         return return_response.success(data_list)
     return return_response.error()
@@ -401,10 +284,10 @@ async def update_brod_heading(updateBrodHeading: UpdateBrodHeading, db: Session 
     return return_response.error()
 
 
-@router.delete("/delete/brod-heading/{b_id}", summary="删除项目大类")
-async def delete_brod_heading(b_id: str, db: Session = Depends(get_db_content)):
+@router.delete("/delete/brod-heading", summary="删除项目大类")
+async def delete_brod_heading(delete: Delete, db: Session = Depends(get_db_content)):
     """删除项目大类"""
-    judge = await curd.delete_brod_heading(b_id, db)
+    judge = await curd.delete_brod_heading(delete, db)
     if judge:
         return return_response.success()
     return return_response.error()
@@ -434,9 +317,80 @@ async def update_sub_class(updateSubClass: UpdateSubClass, db: Session = Depends
     return return_response.error()
 
 
-@router.delete("/delete/sub-class/{b_id}", summary="删除小类")
-async def delete_sub_class(b_id: str, db: Session = Depends(get_db_content)):
-    judge = curd.delete_sub_class(b_id, db)
+@router.delete("/delete/sub-class", summary="删除小类")
+async def delete_sub_class(b_ids: Delete, db: Session = Depends(get_db_content)):
+    judge = await curd.delete_sub_class(b_ids, db)
     if judge:
         return return_response.success()
     return return_response.error()
+
+
+"""模板相关接口"""
+
+
+@router.post("/create/template", summary="新增模板")
+async def create_template(createTemplate: CreateTemplate, db: Session = Depends(get_db_content)):
+    """创建模板时，需要查询可选模块，可选模块进行数据的更新，保存到指定表中"""
+    judge, template_b_id = await curd.create_template(createTemplate.dict(), db)
+    if judge:
+        return return_response.success(template_b_id)
+    return return_response.error()
+
+
+@router.delete("/delete/template", summary="删除模板")
+async def delete_template(delete: Delete, db: Session = Depends(get_db_content)):
+    """删除模板"""
+    judge_data = await curd.delete_template(delete, db)
+    if judge_data:
+        return return_response.success()
+    return return_response.error()
+
+
+@router.put("/update/template", summary="更新模板")
+async def update_template(updateTemplate: UpdateTemplate, db: Session = Depends(get_db_content)):
+    """更新模板"""
+    judge_data = await curd.update_template(updateTemplate, db)
+    if judge_data:
+        return return_response.success()
+    return return_response.error()
+
+
+@router.post("/search/template", summary="查看模板")
+async def search_template(db: Session = Depends(get_db_content)):
+    """查看模板"""
+    judge_data = await curd.search_template(db)
+    return return_response.success(judge_data)
+
+
+@router.get("/search/template/{b_id}", summary="查看模板详情")
+async def search_template_detail(b_id: str, db: Session = Depends(get_db_content)):
+    """查看模板详情"""
+    judge, data = await curd.search_template_details(b_id, db)
+    if judge:
+        return return_response.success(data)
+    return return_response.error()
+
+
+@router.put("/update/option/module/state", summary="修改状态子模块展示状态")
+async def update_son_state(updateSonState: UpdateSonState, db: Session = Depends(get_db_content)):
+    judge_data = await curd.update_template_son_module_state(updateSonState, db)
+    if judge_data:
+        return return_response.success()
+    return return_response.error()
+
+
+@router.get("/search/optional/field", summary="查看可选字段")
+async def search_project_optional_field(template_id: str, module_id: str, db: Session = Depends(get_db_content)):
+    """查看项目基本信息可选字段的数据"""
+    judge_data = await curd.search_project_optional_field(template_id, module_id, db)
+    return return_response.success(judge_data)
+
+
+@router.put("/update/project/optional/file", summary="更新可选字段状态")
+async def update_project_optional_file(updateOptionalFile: OptionalFileList, db: Session = Depends(get_db_content)):
+    """更新项目可选字段状态"""
+    judge_data = await curd.update_optional_file(updateOptionalFile, db)
+    if judge_data:
+        return return_response.success()
+    return return_response.error()
+

@@ -85,6 +85,9 @@ class IdWorker(object):
             self.sequence = (self.sequence + 1) & SEQUENCE_MASK
             if self.sequence == 0:
                 timestamp = self._til_next_millis(self.last_timestamp)
+
+        if timestamp >= self.last_timestamp:
+            timestamp = self._til_next_millis(self.last_timestamp)
         else:
             self.sequence = 0
 
@@ -99,6 +102,7 @@ class IdWorker(object):
         等到下一毫秒
         """
         timestamp = self._gen_timestamp()
+        time.sleep(0.001)
         while timestamp <= last_timestamp:
             timestamp = self._gen_timestamp()
         return timestamp
@@ -117,3 +121,9 @@ def gender_snow_flake_id(datacenter_id=None, worker_id=None, sequence=None):
     sequence = sequence if sequence else 0
     worker = IdWorker(datacenter_id, worker_id, sequence)
     return worker.get_id()
+
+
+
+if __name__ == '__main__':
+    for i in range(20):
+        print(gender_snow_flake_id())

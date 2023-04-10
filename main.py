@@ -3,7 +3,6 @@ import uvicorn
 from router.router import register_app
 from utils.auto_create_models import auto_create_models
 from utils.middleware import register_middleware
-from utils.consul_ import InitializationServer
 
 """服务端口和服务名称"""
 port = 8032
